@@ -1,0 +1,108 @@
+/* @import "tailwindcss";
+
+:root {
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+
+  color: #ffffff;
+  background-color: #0f0b1a;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background-color: #0f0b1a;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+} */
+
+
+@import "tailwindcss";
+
+@theme {
+  /* ACS Brand */
+  --color-acs-purple: #250944;
+  --color-acs-purple-light: #3a1761;
+  --color-acs-purple-dark: #18052e;
+
+  --color-acs-orange: #f59c28;
+  --color-acs-orange-light: #ffb84d;
+  --color-acs-orange-dark: #d98216;
+
+  /* Surfaces */
+  --color-acs-background: #f7f7f7;
+  --color-acs-surface: #ffffff;
+  --color-acs-surface-dark: #1b1028;
+
+  /* Text */
+  --color-acs-text: #17121c;
+  --color-acs-text-muted: #6f6875;
+
+  /* Borders */
+  --color-acs-border: #e8e4eb;
+
+  /* Status */
+  --color-status-success: #16a34a;
+  --color-status-warning: #f59e0b;
+  --color-status-danger: #dc2626;
+  --color-status-info: #2563eb;
+}
+
+:root {
+  font-family:
+    Inter,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+
+  color: var(--color-acs-text);
+  background: var(--color-acs-background);
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background: var(--color-acs-background);
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
