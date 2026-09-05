@@ -1,0 +1,50 @@
+import { Router } from "express";
+import { authenticate } from "../../middleware/authenticate.js";
+import { authorize } from "../../middleware/authorize.js";
+import { asyncHandler } from "../../utils/asyncHandler.js";
+import { ROLES } from "../../constants/roles.js";
+import * as controller from "./submission.controller.js";
+import uploadMiddleware from "../../middleware/upload.middleware.js";
+import ApiError from "../../utils/ApiError.js";
+
+const router = Router();
+
+// Wraps multer errors into ApiError for consistent API responses
+const uploadHandler = (req, res, next) => {
+  const upload = uploadMiddleware.single("projectFile");
+  upload(req, res, (err) => {
+    if (err) {
+      if (err.code === "LIMIT_FILE_SIZE") {
+        return next(
+          ApiError.payloadTooLarge("File exceeds 50 MB limit", "FILE_TOO_LARGE"),
+        );
+      }
+      if (err.message === "UNSUPPORTED_FILE_TYPE") {
+        return next(
+          new ApiError(415, "File must be a ZIP archive", "UNSUPPORTED_FILE_TYPE"),
+        );
+      }
+      return next(ApiError.internal("Upload failed", "UPLOAD_FAILED"));
+    }
+    next();
+  });
+};
+
+router.use(authenticate);
+
+// POST /:submissionId/upload — upload project ZIP
+router.post(
+  "/:submissionId/upload",
+  authorize(ROLES.CONTESTANT),
+  uploadHandler,
+  asyncHandler(controller.uploadSubmissionFile),
+);
+
+// GET /:submissionId/download — download project ZIP
+router.get(
+  "/:submissionId/download",
+  authorize(ROLES.CONTESTANT),
+  asyncHandler(controller.downloadSubmissionFile),
+);
+
+export default router;
