@@ -1,18 +1,40 @@
-import { BrowserRouter } from 'react-router-dom'
-import JudgeRoutes from "./routes/JudgeRoutes";
-
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { AuthProvider } from './context/AuthContext'
+import ProtectedRoute from './components/common/ProtectedRoute'
+import RoleRoute from './components/common/RoleRoute'
+import Login from './pages/Login'
+import Dashboard from './pages/Dashboard'
+import Forbidden from './pages/Forbidden'
+import JudgeRoutes from './routes/JudgeRoutes'
 import './App.css'
 
 function App() {
-
   return (
-    <>
     <BrowserRouter>
-      <JudgeRoutes />
+      <AuthProvider>
+        <Routes>
+          <Route path="/" element={<Navigate to="/login" replace />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/forbidden" element={<Forbidden />} />
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/judge/*"
+            element={
+              <RoleRoute role="judge">
+                <JudgeRoutes />
+              </RoleRoute>
+            }
+          />
+        </Routes>
+      </AuthProvider>
     </BrowserRouter>
-
-    </>
   )
 }
-
 export default App
