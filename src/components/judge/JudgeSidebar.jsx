@@ -36,7 +36,7 @@ function JudgeSidebar({ isOpen, onClose }) {
           fixed inset-y-0 left-0 z-50 flex w-72 shrink-0 flex-col
           bg-acs-purple shadow-2xl
           transition-transform duration-300 ease-in-out
-          lg:static lg:z-auto lg:w-64 lg:translate-x-0 lg:shadow-none
+          lg:fixed lg:z-50 lg:w-64 lg:translate-x-0 lg:shadow-none
           ${
             isOpen
               ? "translate-x-0"

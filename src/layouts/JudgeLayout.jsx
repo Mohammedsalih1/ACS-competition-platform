@@ -90,8 +90,8 @@ function JudgeLayout() {
   };
 
   return (
-    <div className="min-h-screen bg-acs-background text-acs-text">
-      <div className="flex min-h-screen">
+    <div className="h-screen overflow-hidden bg-acs-background text-acs-text">
+      <div className="flex h-full">
         {/* Sidebar */}
         <JudgeSidebar
           isOpen={isSidebarOpen}
@@ -99,12 +99,12 @@ function JudgeLayout() {
         />
 
         {/* Main Content */}
-        <div className="flex min-w-0 flex-1 flex-col">
+        <div className="flex h-full min-w-0 min-h-0 flex-1 flex-col lg:ml-64">
           <JudgeNavbar
             onMenuClick={() => setIsSidebarOpen(true)}
           />
 
-          <main className="flex-1 p-4 sm:p-6 lg:p-8">
+          <main className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
             <Outlet />
           </main>
         </div>
