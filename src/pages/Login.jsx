@@ -32,14 +32,14 @@ const ERROR_MESSAGES = {
 };
 
 export default function Login() {
-  const { login, isAuthenticated } = useAuth();
+  const { login, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState(null);
 
-  // Already signed in → go straight to the dashboard.
+  // Already signed in → go straight to the role-appropriate dashboard.
   if (isAuthenticated) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to={user?.role === 'judge' ? '/judge/dashboard' : '/dashboard'} replace />;
   }
 
   const form = useForm({
@@ -51,8 +51,8 @@ export default function Login() {
     setError(null);
 
     try {
-      await login(data.email, data.password);
-      navigate('/dashboard');
+      const { user: loggedInUser } = await login(data.email, data.password);
+      navigate(loggedInUser?.role === 'judge' ? '/judge/dashboard' : '/dashboard');
     } catch (err) {
       const code = err?.code || 'default';
       setError(ERROR_MESSAGES[code] || ERROR_MESSAGES.default);
