@@ -37,15 +37,15 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState(null);
 
-  // Already signed in → go straight to the role-appropriate dashboard.
-  if (isAuthenticated) {
-    return <Navigate to={user?.role === 'judge' ? '/judge/dashboard' : '/dashboard'} replace />;
-  }
-
   const form = useForm({
     resolver: zodResolver(schema),
     defaultValues: { email: '', password: '' },
   });
+
+  // Already signed in -> go straight to the role-appropriate dashboard.
+  if (isAuthenticated) {
+    return <Navigate to={user?.role === 'judge' ? '/judge/dashboard' : '/dashboard'} replace />;
+  }
 
   const onSubmit = async (data) => {
     setError(null);
