@@ -1,0 +1,89 @@
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/geist";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  .theme {
+    --font-heading: var(--font-sans);
+    --font-sans: 'Geist Variable', sans-serif
+  }
+  :root {
+    --background: 265 40% 97%;
+    --foreground: 265 68% 15%;
+    --card: 0 0% 100%;
+    --card-foreground: 265 68% 15%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 265 68% 15%;
+    --primary: 265 68% 29%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 100%;
+    --secondary-foreground: 265 68% 15%;
+    --muted: 265 20% 95%;
+    --muted-foreground: 265 20% 45%;
+    --accent: 35 95% 55%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 72% 51%;
+    --border: 265 20% 88%;
+    --input: 265 20% 88%;
+    --ring: 265 68% 29%;
+    --chart-1: 265 68% 29%;
+    --chart-2: 35 95% 55%;
+    --chart-3: 0 0% 100%;
+    --chart-4: 265 68% 29%;
+    --chart-5: 265 20% 88%;
+    --radius: 0.625rem;
+    --sidebar: 265 68% 29%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 265 68% 29%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 35 95% 55%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 265 20% 45%;
+    --sidebar-ring: 265 68% 29%
+  }
+  .dark {
+    --background: 265 68% 15%;
+    --foreground: 0 0% 100%;
+    --card: 265 30% 18%;
+    --card-foreground: 0 0% 100%;
+    --popover: 265 30% 18%;
+    --popover-foreground: 0 0% 100%;
+    --primary: 265 68% 29%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 265 20% 25%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 265 20% 25%;
+    --muted-foreground: 265 20% 70%;
+    --accent: 35 95% 55%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 72% 51%;
+    --border: 265 20% 30%;
+    --input: 265 20% 30%;
+    --ring: 265 68% 55%;
+    --chart-1: 265 68% 55%;
+    --chart-2: 35 95% 55%;
+    --chart-3: 265 20% 70%;
+    --chart-4: 265 68% 40%;
+    --chart-5: 265 20% 40%;
+    --sidebar: 265 68% 29%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 265 68% 29%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 35 95% 55%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 265 20% 45%;
+    --sidebar-ring: 265 68% 55%
+  }
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
+}
