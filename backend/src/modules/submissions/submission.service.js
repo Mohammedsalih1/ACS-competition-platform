@@ -1,9 +1,9 @@
 import AdmZip from "adm-zip";
 import fs from "fs/promises";
 import path from "path";
-import { v4 as uuidv4 } from "uuid";
 import ApiError from "../../utils/ApiError.js";
-import Submission from "../../models/submission.model.js";
+import Submission, { SUBMISSION_STATUS } from "../../models/submission.model.js";
+import File, { UPLOAD_STATUS } from "../../models/file.model.js";
 import {
   SUBMISSIONS_DIR,
   ZIP_MAGIC_BYTES,
@@ -11,7 +11,6 @@ import {
 
 // ── Helpers ─────────────────────────────────────────────────────────
 
-// Checks first 4 bytes against ZIP signature (PK\x03\x04)
 async function verifyMagicBytes(filePath) {
   let fh;
   try {
@@ -24,7 +23,10 @@ async function verifyMagicBytes(filePath) {
   }
 }
 
-// Moves file with fallback for cross-device (EXDEV)
+export const createSubmission = async ({ contestant, title, description }) => {
+  return Submission.create({ contestant, title, description });
+};
+
 async function safeMove(src, dest) {
   try {
     await fs.rename(src, dest);
@@ -38,7 +40,6 @@ async function safeMove(src, dest) {
   }
 }
 
-// Deletes temp file, ignores if already gone
 async function cleanupTemp(filePath) {
   try {
     await fs.unlink(filePath);
@@ -47,7 +48,6 @@ async function cleanupTemp(filePath) {
   }
 }
 
-// Maps OS I/O errors to ApiError
 function storageError(err) {
   const unavailable = ["EACCES", "EROFS", "ENOSPC", "EPERM"];
   if (unavailable.includes(err.code)) {
@@ -58,30 +58,46 @@ function storageError(err) {
 
 // ── Public API ──────────────────────────────────────────────────────
 
-// Validates ZIP (magic bytes + structure), stores it, returns metadata
-export const processAndStoreZip = async (tempFilePath, submissionId) => {
+// Ownership check — throws if the submission doesn't exist or isn't the caller's.
+export const verifyOwnership = async (submissionId, contestantId) => {
+  const submission = await Submission.findOne({
+    _id: submissionId,
+    contestant: contestantId,
+  });
+  if (!submission) {
+    throw ApiError.forbidden("You do not own this submission");
+  }
+  return submission;
+};
+
+// Validates the ZIP, moves it into permanent storage, and creates the File
+// record. Returns the populated File doc. Marks the File as FAILED (rather
+// than deleting it) if validation/storage fails after it was created, so
+// failed attempts stay visible instead of vanishing silently.
+export const uploadZipForSubmission = async ({
+  submission,
+  tempFilePath,
+  originalFileName,
+  mimeType,
+}) => {
+  const file = await File.create({
+    submission: submission._id,
+    status: UPLOAD_STATUS.PENDING,
+  });
+
   try {
-    // 1. Magic bytes check
     const isZip = await verifyMagicBytes(tempFilePath);
     if (!isZip) {
       await cleanupTemp(tempFilePath);
-      throw new ApiError(
-        415,
-        "File is not a valid ZIP archive",
-        "UNSUPPORTED_FILE_TYPE",
-      );
+      throw new ApiError(415, "File is not a valid ZIP archive", "UNSUPPORTED_FILE_TYPE");
     }
 
-    // 2. ZIP integrity check
     let zip;
     try {
       zip = new AdmZip(tempFilePath);
     } catch {
       await cleanupTemp(tempFilePath);
-      throw ApiError.badRequest(
-        "Corrupt or unreadable ZIP archive",
-        "CORRUPT_ARCHIVE",
-      );
+      throw ApiError.badRequest("Corrupt or unreadable ZIP archive", "CORRUPT_ARCHIVE");
     }
 
     const zipEntries = zip.getEntries();
@@ -90,8 +106,7 @@ export const processAndStoreZip = async (tempFilePath, submissionId) => {
       throw ApiError.badRequest("ZIP archive is empty", "CORRUPT_ARCHIVE");
     }
 
-    // 3. Prepare destination
-    const finalDir = path.join(SUBMISSIONS_DIR, String(submissionId));
+    const finalDir = path.join(SUBMISSIONS_DIR, String(submission._id));
     try {
       await fs.mkdir(finalDir, { recursive: true });
     } catch (err) {
@@ -99,9 +114,8 @@ export const processAndStoreZip = async (tempFilePath, submissionId) => {
       throw storageError(err);
     }
 
-    // 4. Move to permanent storage
-    const fileId = uuidv4();
-    const finalFilePath = path.join(finalDir, `${fileId}.zip`);
+    // File's own _id is the on-disk identifier — no separate uuid needed.
+    const finalFilePath = path.join(finalDir, `${file._id}.zip`);
     try {
       await safeMove(tempFilePath, finalFilePath);
     } catch (err) {
@@ -109,40 +123,43 @@ export const processAndStoreZip = async (tempFilePath, submissionId) => {
       throw storageError(err);
     }
 
-    // 5. Return metadata
     const stats = await fs.stat(finalFilePath);
-    return {
-      fileId,
-      fileSize: stats.size,
-      storagePath: finalFilePath, // internal — never expose to client
-    };
+
+    file.originalFileName = originalFileName;
+    file.fileSize = stats.size;
+    file.mimeType = mimeType;
+    file.storagePath = finalFilePath;
+    file.status = UPLOAD_STATUS.UPLOADED;
+    await file.save();
+
+    submission.files.push(file._id);
+    if (submission.status === SUBMISSION_STATUS.DRAFT) {
+      submission.status = SUBMISSION_STATUS.SUBMITTED;
+      submission.submittedAt = new Date();
+    }
+    await submission.save();
+
+    return file;
   } catch (error) {
+    file.status = UPLOAD_STATUS.FAILED;
+    await file.save().catch(() => {});
     if (error.code) throw error; // known ApiError
     await cleanupTemp(tempFilePath);
     throw ApiError.internal("File processing failed", "UPLOAD_FAILED");
   }
 };
 
-// Returns file path for download, throws NOT_FOUND if missing
-export const getFilePath = async (submissionId, fileId) => {
-  const filePath = path.join(
-    SUBMISSIONS_DIR,
-    String(submissionId),
-    `${fileId}.zip`,
-  );
-  try {
-    await fs.access(filePath);
-  } catch {
-    throw ApiError.notFound("File not found");
-  }
-  return filePath;
-};
+// Returns the most recent successfully uploaded file for a submission.
+export const getLatestUploadedFile = async (submissionId) => {
+  const file = await File.findOne({
+    submission: submissionId,
+    status: UPLOAD_STATUS.UPLOADED,
+  })
+    .sort({ createdAt: -1 })
+    .select("+storagePath");
 
-// Verifies the submission belongs to the user
-export const verifyOwnership = async (submissionId, userId) => {
-  const submission = await Submission.findOne({ _id: submissionId, userId });
-  if (!submission) {
-    throw ApiError.forbidden("You do not own this submission");
+  if (!file) {
+    throw ApiError.notFound("No file uploaded for this submission yet");
   }
-  return submission;
+  return file;
 };

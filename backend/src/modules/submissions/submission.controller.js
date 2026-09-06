@@ -1,7 +1,7 @@
 import fs from "fs/promises";
 import * as submissionService from "./submission.service.js";
+import { sendCreated } from "../../utils/apiResponse.js";
 import ApiError from "../../utils/ApiError.js";
-import { sendCreated, sendSuccess } from "../../utils/apiResponse.js";
 
 // POST /:submissionId/upload
 export const uploadSubmissionFile = async (req, res) => {
@@ -9,68 +9,57 @@ export const uploadSubmissionFile = async (req, res) => {
     throw ApiError.badRequest("Project file is required", "FILE_REQUIRED");
   }
 
-  const userId = req.user.id;
+  const contestantId = req.user.id;
   const { submissionId } = req.params;
 
-  let submission;
-  let fileMetadata;
-
+  let file;
   try {
-    // Verify ownership (service layer, per §7 rule 6)
-    submission = await submissionService.verifyOwnership(submissionId, userId);
+    const submission = await submissionService.verifyOwnership(submissionId, contestantId);
 
-    // Validate & store the ZIP
-    fileMetadata = await submissionService.processAndStoreZip(
-      req.file.path,
-      submissionId,
-    );
+    file = await submissionService.uploadZipForSubmission({
+      submission,
+      tempFilePath: req.file.path,
+      originalFileName: req.file.originalname,
+      mimeType: "application/zip",
+    });
   } catch (err) {
-    // Clean up temp file on any failure
     await fs.unlink(req.file.path).catch(() => {});
     throw err;
   }
 
-  // Update submission record
-  submission.fileId = fileMetadata.fileId;
-  submission.originalFileName = req.file.originalname;
-  submission.fileSize = fileMetadata.fileSize;
-  submission.mimeType = "application/zip";
-  submission.storagePath = fileMetadata.storagePath;
-  submission.status = "SUBMITTED";
-  await submission.save();
-
-  // Return only safe metadata — no internal paths
   return sendCreated(res, {
-    fileId: fileMetadata.fileId,
-    originalFileName: req.file.originalname,
+    fileId: file._id,
+    originalFileName: file.originalFileName,
+  });
+};
+
+export const createSubmission = async (req, res) => {
+  const submission = await submissionService.createSubmission({
+    contestant: req.user.id,
+    title: req.body.title,
+    description: req.body.description,
+  });
+  return sendCreated(res, {
+    id: submission.id,
+    title: submission.title,
+    status: submission.status,
   });
 };
 
 // GET /:submissionId/download
 export const downloadSubmissionFile = async (req, res) => {
-  const userId = req.user.id;
+  const contestantId = req.user.id;
   const { submissionId } = req.params;
 
-  const submission = await submissionService.verifyOwnership(
-    submissionId,
-    userId,
-  );
+  await submissionService.verifyOwnership(submissionId, contestantId);
+  const file = await submissionService.getLatestUploadedFile(submissionId);
 
-  if (!submission.fileId) {
-    throw ApiError.notFound("No file uploaded for this submission yet");
-  }
-
-  const filePath = await submissionService.getFilePath(
-    submissionId,
-    submission.fileId,
-  );
-
-  const safeFileName = submission.originalFileName || "project.zip";
+  const safeFileName = file.originalFileName || "project.zip";
   res.setHeader("Content-Type", "application/zip");
   res.setHeader(
     "Content-Disposition",
     `attachment; filename="${encodeURIComponent(safeFileName)}"`,
   );
 
-  return res.sendFile(filePath);
+  return res.sendFile(file.storagePath);
 };

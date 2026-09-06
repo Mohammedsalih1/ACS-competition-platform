@@ -32,6 +32,17 @@ const uploadHandler = (req, res, next) => {
 
 router.use(authenticate);
 
+import { validate } from "../../middleware/validate.js";
+import { createSubmissionSchema } from "./submission.validation.js";
+
+// POST / — create a new submission
+router.post(
+  "/",
+  authorize(ROLES.CONTESTANT),
+  validate({ body: createSubmissionSchema }),
+  asyncHandler(controller.createSubmission),
+);
+
 // POST /:submissionId/upload — upload project ZIP
 router.post(
   "/:submissionId/upload",
