@@ -40,7 +40,6 @@ const submissionSchema = new mongoose.Schema(
       index: true,
     },
     submittedAt: { type: Date, default: null },
-    /** Owned by the file-storage module; left loose on purpose. */
     files: [{ type: mongoose.Schema.Types.ObjectId, ref: 'File' }],
   },
   {
