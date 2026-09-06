@@ -21,10 +21,10 @@ const uploadHandler = (req, res, next) => {
       }
       if (err.message === "UNSUPPORTED_FILE_TYPE") {
         return next(
-          new ApiError(415, "File must be a ZIP archive", "UNSUPPORTED_FILE_TYPE"),
+          new ApiError(415, "UNSUPPORTED_FILE_TYPE", "File must be a ZIP archive"),
         );
       }
-      return next(ApiError.internal("Upload failed", "UPLOAD_FAILED"));
+      return next(ApiError.internal("Upload failed"));
     }
     next();
   });

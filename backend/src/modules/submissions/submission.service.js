@@ -51,9 +51,9 @@ async function cleanupTemp(filePath) {
 function storageError(err) {
   const unavailable = ["EACCES", "EROFS", "ENOSPC", "EPERM"];
   if (unavailable.includes(err.code)) {
-    return new ApiError(503, "Storage unavailable", "STORAGE_UNAVAILABLE");
+    return new ApiError(503, "STORAGE_UNAVAILABLE", "Storage unavailable");
   }
-  return ApiError.internal("Failed to store file", "UPLOAD_FAILED");
+  return ApiError.internal("Failed to store file");
 }
 
 // ── Public API ──────────────────────────────────────────────────────
@@ -89,7 +89,7 @@ export const uploadZipForSubmission = async ({
     const isZip = await verifyMagicBytes(tempFilePath);
     if (!isZip) {
       await cleanupTemp(tempFilePath);
-      throw new ApiError(415, "File is not a valid ZIP archive", "UNSUPPORTED_FILE_TYPE");
+      throw new ApiError(415, "UNSUPPORTED_FILE_TYPE", "File is not a valid ZIP archive");
     }
 
     let zip;
@@ -145,7 +145,7 @@ export const uploadZipForSubmission = async ({
     await file.save().catch(() => {});
     if (error.code) throw error; // known ApiError
     await cleanupTemp(tempFilePath);
-    throw ApiError.internal("File processing failed", "UPLOAD_FAILED");
+    throw ApiError.internal("File processing failed");
   }
 };
 
