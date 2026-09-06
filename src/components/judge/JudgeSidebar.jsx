@@ -1,6 +1,6 @@
 import { NavLink } from "react-router-dom";
 import acsLogo from "../../assets/acs-logo.png";
-import { LayoutDashboard, FolderKanban, Zap } from "lucide-react";
+import { LayoutDashboard, FolderKanban } from "lucide-react";
 
 
 function JudgeSidebar({ isOpen, onClose }) {
