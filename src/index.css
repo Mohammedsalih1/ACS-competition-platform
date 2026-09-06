@@ -89,6 +89,30 @@ select {
   box-sizing: border-box;
 }
 
+* {
+  scrollbar-color: #330863 var(--color-acs-background);
+  scrollbar-width: thin;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: var(--color-acs-background);
+}
+
+*::-webkit-scrollbar-thumb {
+  border: 2px solid var(--color-acs-background);
+  border-radius: 999px;
+  background: #250944;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--color-acs-purple-light);
+}
+
 html {
   scroll-behavior: smooth;
 }
