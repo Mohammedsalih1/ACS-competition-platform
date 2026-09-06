@@ -7,7 +7,7 @@ import ProjectDetails from "../pages/judge/ProjectDetails";
 function JudgeRoutes() {
   return (
     <Routes>
-      <Route path="/judge" element={<JudgeLayout />}>
+      <Route path="/" element={<JudgeLayout />}>
         <Route index element={<Navigate to="dashboard" replace />} />
 
         <Route path="dashboard" element={<JudgeDashboard />} />
@@ -22,7 +22,7 @@ function JudgeRoutes() {
 
       <Route
         path="*"
-        element={<Navigate to="/judge/dashboard" replace />}
+        element={<Navigate to="dashboard" replace />}
       />
     </Routes>
   );
