@@ -2,11 +2,15 @@ import fs from "fs/promises";
 import * as submissionService from "./submission.service.js";
 import { sendCreated } from "../../utils/apiResponse.js";
 import ApiError from "../../utils/ApiError.js";
+import { ERROR_CODES } from "../../constants/errorCodes.js";
 
 // POST /:submissionId/upload
 export const uploadSubmissionFile = async (req, res) => {
   if (!req.file) {
-    throw ApiError.badRequest("Project file is required", "FILE_REQUIRED");
+    throw ApiError.badRequest(
+      "Project file is required",
+      ERROR_CODES.FILE_REQUIRED,
+    );
   }
 
   const contestantId = req.user.id;

@@ -2,6 +2,7 @@ import AdmZip from "adm-zip";
 import fs from "fs/promises";
 import path from "path";
 import ApiError from "../../utils/ApiError.js";
+import { ERROR_CODES } from "../../constants/errorCodes.js";
 import Submission, { SUBMISSION_STATUS } from "../../models/submission.model.js";
 import File, { UPLOAD_STATUS } from "../../models/file.model.js";
 import {
@@ -51,7 +52,7 @@ async function cleanupTemp(filePath) {
 function storageError(err) {
   const unavailable = ["EACCES", "EROFS", "ENOSPC", "EPERM"];
   if (unavailable.includes(err.code)) {
-    return new ApiError(503, "STORAGE_UNAVAILABLE", "Storage unavailable");
+    return new ApiError(503, ERROR_CODES.STORAGE_UNAVAILABLE, "Storage unavailable");
   }
   return ApiError.internal("Failed to store file");
 }
@@ -89,21 +90,34 @@ export const uploadZipForSubmission = async ({
     const isZip = await verifyMagicBytes(tempFilePath);
     if (!isZip) {
       await cleanupTemp(tempFilePath);
-      throw new ApiError(415, "UNSUPPORTED_FILE_TYPE", "File is not a valid ZIP archive");
+      throw new ApiError(
+        415,
+        ERROR_CODES.UNSUPPORTED_FILE_TYPE,
+        "File is not a valid ZIP archive",
+      );
     }
 
-    let zip;
+    // AdmZip parses lazily: the constructor accepts a truncated or scrambled
+    // archive and only throws once the central directory is actually read, so
+    // getEntries() has to sit inside the same guard or a corrupt upload escapes
+    // as an unhandled 500 instead of a 400.
+    let zipEntries;
     try {
-      zip = new AdmZip(tempFilePath);
+      zipEntries = new AdmZip(tempFilePath).getEntries();
     } catch {
       await cleanupTemp(tempFilePath);
-      throw ApiError.badRequest("Corrupt or unreadable ZIP archive", "CORRUPT_ARCHIVE");
+      throw ApiError.badRequest(
+        "Corrupt or unreadable ZIP archive",
+        ERROR_CODES.CORRUPT_ARCHIVE,
+      );
     }
 
-    const zipEntries = zip.getEntries();
     if (!zipEntries || zipEntries.length === 0) {
       await cleanupTemp(tempFilePath);
-      throw ApiError.badRequest("ZIP archive is empty", "CORRUPT_ARCHIVE");
+      throw ApiError.badRequest(
+        "ZIP archive is empty",
+        ERROR_CODES.CORRUPT_ARCHIVE,
+      );
     }
 
     const finalDir = path.join(SUBMISSIONS_DIR, String(submission._id));
@@ -143,7 +157,10 @@ export const uploadZipForSubmission = async ({
   } catch (error) {
     file.status = UPLOAD_STATUS.FAILED;
     await file.save().catch(() => {});
-    if (error.code) throw error; // known ApiError
+    // Only OUR errors are already shaped for the client. A raw fs/mongo error
+    // also carries a `.code` (ENOENT, EACCES...), so testing for that alone let
+    // internals through unmapped and skipped the temp-file cleanup below.
+    if (error instanceof ApiError) throw error;
     await cleanupTemp(tempFilePath);
     throw ApiError.internal("File processing failed");
   }
