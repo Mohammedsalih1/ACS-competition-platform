@@ -17,6 +17,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { AlertCircle, Eye, EyeOff, Loader2, X } from 'lucide-react';
+import acsLogo from '../assets/acs-logo.png';
 
 const schema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -63,7 +64,7 @@ export default function Login() {
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <Card className="w-full max-w-md rounded-2xl shadow-xl">
         <CardHeader className="items-center text-center pt-6 pb-2 px-8">
-          <img src="/logo.png" alt="ACS" className="h-16 mb-6 mx-auto" />
+          <img src={acsLogo} alt="ACS" className="h-16 mb-6 mx-auto" />
           <CardTitle className="text-2xl">Welcome back</CardTitle>
           <CardDescription>Sign in to your ACS account</CardDescription>
         </CardHeader>

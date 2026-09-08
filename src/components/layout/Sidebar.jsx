@@ -4,6 +4,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { LayoutDashboard, LogOut } from 'lucide-react';
+import acsLogo from '../../assets/acs-logo.png';
 
 export default function Sidebar() {
   const { user, logout } = useAuth();
@@ -11,7 +12,7 @@ export default function Sidebar() {
   return (
     <aside className="w-64 h-screen bg-primary flex flex-col fixed left-0 top-0">
       <div className="p-5 flex items-center gap-3 border-b border-white/10">
-        <img src="/logo-white.png" alt="ACS" className="h-8" />
+        <img src={acsLogo} alt="ACS" className="h-8" />
         <span className="text-white font-bold text-lg">ACS</span>
       </div>
 
