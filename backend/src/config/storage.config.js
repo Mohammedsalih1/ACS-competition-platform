@@ -1,13 +1,14 @@
 import path from "path";
 import fs from "fs/promises";
+import { env } from "./env.js";
 
 export const STORAGE_BASE =
-  process.env.STORAGE_PATH || path.resolve(process.cwd(), "storage");
+  env.STORAGE_PATH || path.resolve(process.cwd(), "storage");
 
 export const TEMP_DIR = path.join(STORAGE_BASE, "temp");
 export const SUBMISSIONS_DIR = path.join(STORAGE_BASE, "submissions");
 
-export const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB
+export const MAX_FILE_SIZE = env.MAX_UPLOAD_SIZE_MB * 1024 * 1024;
 export const ALLOWED_MIME_TYPES = [
   "application/zip",
   "application/x-zip-compressed",
