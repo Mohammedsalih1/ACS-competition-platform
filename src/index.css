@@ -1,84 +1,41 @@
-/* @import "tailwindcss";
-
-:root {
-  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    sans-serif;
-
-  color: #ffffff;
-  background-color: #0f0b1a;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-* {
-  box-sizing: border-box;
-}
-
-html {
-  scroll-behavior: smooth;
-}
-
-body {
-  margin: 0;
-  min-width: 320px;
-  min-height: 100vh;
-  background-color: #0f0b1a;
-}
-
-button,
-input,
-textarea,
-select {
-  font: inherit;
-} */
-
-
 @import "tailwindcss";
+@import "tw-animate-css";
 
 @theme {
   /* ACS Brand */
   --color-acs-purple: #250944;
   --color-acs-purple-light: #3a1761;
   --color-acs-purple-dark: #18052e;
-
   --color-acs-orange: #f59c28;
   --color-acs-orange-light: #ffb84d;
   --color-acs-orange-dark: #d98216;
 
-  /* Surfaces */
-  --color-acs-background: #f7f7f7;
-  --color-acs-surface: #ffffff;
-  --color-acs-surface-dark: #1b1028;
-
-  /* Text */
-  --color-acs-text: #17121c;
-  --color-acs-text-muted: #6f6875;
-
-  /* Borders */
-  --color-acs-border: #e8e4eb;
-
-  /* Status */
-  --color-status-success: #16a34a;
-  --color-status-warning: #f59e0b;
-  --color-status-danger: #dc2626;
-  --color-status-info: #2563eb;
+  /* shadcn semantic tokens (light theme) */
+  --color-background: hsl(265 40% 97%);
+  --color-foreground: hsl(265 68% 15%);
+  --color-card: hsl(0 0% 100%);
+  --color-card-foreground: hsl(265 68% 15%);
+  --color-popover: hsl(0 0% 100%);
+  --color-popover-foreground: hsl(265 68% 15%);
+  --color-primary: hsl(265 68% 29%);
+  --color-primary-foreground: hsl(0 0% 100%);
+  --color-secondary: hsl(0 0% 100%);
+  --color-secondary-foreground: hsl(265 68% 15%);
+  --color-muted: hsl(265 20% 95%);
+  --color-muted-foreground: hsl(265 20% 45%);
+  --color-accent: hsl(35 95% 55%);
+  --color-accent-foreground: hsl(0 0% 100%);
+  --color-destructive: hsl(0 72% 51%);
+  --color-border: hsl(265 20% 88%);
+  --color-input: hsl(265 20% 88%);
+  --color-ring: hsl(265 68% 29%);
+  --radius: 0.625rem;
 }
 
 :root {
-  font-family:
-    Inter,
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    sans-serif;
-
-  color: var(--color-acs-text);
-  background: var(--color-acs-background);
-
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: var(--color-foreground);
+  background: var(--color-background);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -90,43 +47,25 @@ select {
 }
 
 * {
-  scrollbar-color: #330863 var(--color-acs-background);
+  scrollbar-color: var(--color-acs-purple) var(--color-background);
   scrollbar-width: thin;
 }
-
-*::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
-}
-
-*::-webkit-scrollbar-track {
-  background: var(--color-acs-background);
-}
-
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-track { background: var(--color-background); }
 *::-webkit-scrollbar-thumb {
-  border: 2px solid var(--color-acs-background);
+  border: 2px solid var(--color-background);
   border-radius: 999px;
-  background: #250944;
+  background: var(--color-acs-purple);
 }
+*::-webkit-scrollbar-thumb:hover { background: var(--color-acs-purple-light); }
 
-*::-webkit-scrollbar-thumb:hover {
-  background: var(--color-acs-purple-light);
-}
-
-html {
-  scroll-behavior: smooth;
-}
+html { scroll-behavior: smooth; }
 
 body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background: var(--color-acs-background);
+  background: var(--color-background);
 }
 
-button,
-input,
-textarea,
-select {
-  font: inherit;
-}
+button, input, textarea, select { font: inherit; }

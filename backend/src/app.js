@@ -40,7 +40,13 @@ export const createApp = () => {
       origin(origin, callback) {
         // Same-origin and non-browser clients (curl, Postman) send no Origin.
         if (!origin) return callback(null, true);
-        if (env.CORS_ORIGINS.includes(origin)) return callback(null, true);
+        const isLocalDevelopmentOrigin =
+          env.isDevelopment &&
+          /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin);
+
+        if (env.CORS_ORIGINS.includes(origin) || isLocalDevelopmentOrigin) {
+          return callback(null, true);
+        }
         return callback(new Error(`Origin ${origin} is not allowed by CORS`));
       },
       credentials: true,
