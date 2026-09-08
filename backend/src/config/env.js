@@ -51,6 +51,10 @@ const schema = z.object({
 
   LOG_LEVEL: z.enum(['error', 'warn', 'info', 'debug']).default('info'),
 
+  // --- File storage / uploads ---
+  STORAGE_PATH: z.string().optional(),
+  MAX_UPLOAD_SIZE_MB: z.coerce.number().int().positive().max(500).default(50),
+
   SEED_ADMIN_NAME: z.string().default('ACS Admin'),
   SEED_ADMIN_EMAIL: z.string().email().optional(),
   SEED_ADMIN_PASSWORD: z.string().optional(),
