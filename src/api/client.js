@@ -1,4 +1,7 @@
-const API = 'http://localhost:5000/api/v1';
+// Points at the local backend by default; override with VITE_API_URL per
+// environment (see .env.example). Must stay in sync with the backend's
+// API_PREFIX and CORS_ORIGINS.
+const API = import.meta.env.VITE_API_URL ?? 'http://localhost:5000/api/v1';
 
 // Access token is kept in memory only; never persisted to storage.
 let accessToken = null;
@@ -27,12 +30,17 @@ async function refreshTokens() {
 }
 
 export async function api(path, options = {}) {
+  // FormData must set its own Content-Type: the multipart boundary is generated
+  // by the browser, and overriding the header leaves the server unable to parse
+  // the body (multer sees no file at all).
+  const isFormData = options.body instanceof FormData;
+
   const send = () =>
     fetch(API + path, {
       ...options,
       credentials: 'include',
       headers: {
-        'Content-Type': 'application/json',
+        ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
         ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
         ...options.headers,
       },
