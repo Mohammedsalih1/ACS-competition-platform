@@ -1,10 +1,13 @@
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { FileText, Clock, Trophy } from 'lucide-react';
+import { FileText, Clock, Trophy, Upload } from 'lucide-react';
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   const stats = [
     { icon: FileText, label: 'Total Submissions', value: '0' },
@@ -51,8 +54,15 @@ export default function Dashboard() {
             <FileText className="h-12 w-12 text-muted-foreground/30 mb-3" />
             <p className="font-medium text-muted-foreground">No submissions yet</p>
             <p className="text-sm text-muted-foreground/60 mt-1">
-              Your competition submissions will appear here
+              Upload your project ZIP file and live URL to submit
             </p>
+            <Button
+              className="mt-4"
+              onClick={() => navigate('/dashboard/submit')}
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              Submit Project
+            </Button>
           </div>
         </CardContent>
       </Card>

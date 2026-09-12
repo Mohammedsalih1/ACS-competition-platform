@@ -23,3 +23,7 @@ dist-ssr
 *.sln
 *.sw?
 cookies.txt
+
+# Environment files
+.env
+.env.*
