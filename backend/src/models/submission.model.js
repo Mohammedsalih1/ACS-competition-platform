@@ -1,18 +1,12 @@
 /**
- * Submission - PLACEHOLDER  not an implementation.
+ * Submission - a contestant's competition entry.
  *
- * -----------------------------------------------------------------------------
- * Scope note: this file exists only so the file-storage module has a stable
- * document to attach file references to during phase 1. It is intentionally
- * minimal and has NO routes, controller or service. The module owner is free to
- * extend or replace it - the only things other modules currently rely on are
- * the `contestant` reference and the `status` values.
+ * Owned by the submissions module (routes, controller and service live in
+ * src/modules/submissions/). A submission is created as a `draft` and flips to
+ * `submitted` the first time a ZIP is accepted for it.
  *
- * The storage module is expected to own its own `File` model and either:
- *    hold `submission: ObjectId` on each file document (preferred), or
- *    push file ids onto `Submission.files` here.
- * Nothing in the auth foundation reads this model.
- * -----------------------------------------------------------------------------
+ * File records point here via `File.submission` AND are mirrored onto `files`
+ * below, so a submission can be read without a second query.
  */
 import mongoose from 'mongoose';
 
@@ -40,7 +34,6 @@ const submissionSchema = new mongoose.Schema(
       index: true,
     },
     submittedAt: { type: Date, default: null },
-    /** Owned by the file-storage module; left loose on purpose. */
     files: [{ type: mongoose.Schema.Types.ObjectId, ref: 'File' }],
   },
   {

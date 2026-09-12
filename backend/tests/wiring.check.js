@@ -17,6 +17,13 @@ process.env.MONGODB_URI = 'mongodb://127.0.0.1:27017/acs_check';
 process.env.LOG_LEVEL = 'error';
 process.env.CORS_ORIGINS = 'http://localhost:5173';
 process.env.BCRYPT_ROUNDS = '10';
+process.env.MAX_UPLOAD_SIZE_MB = '7';
+
+import os from 'node:os';
+import nodePath from 'node:path';
+import nodeFs from 'node:fs/promises';
+
+process.env.STORAGE_PATH = await nodeFs.mkdtemp(nodePath.join(os.tmpdir(), 'acs-wiring-'));
 
 import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
@@ -31,6 +38,10 @@ const { errorHandler } = await import('../src/middleware/errorHandler.js');
 const { loginSchema } = await import('../src/modules/auth/auth.validation.js');
 const { createUserSchema } = await import('../src/modules/users/user.validation.js');
 const tokens = await import('../src/utils/tokens.js');
+const storageConfig = await import('../src/config/storage.config.js');
+const uploadMiddleware = (await import('../src/middleware/upload.middleware.js')).default;
+const { createSubmissionSchema, submissionIdParamSchema } = await import('../src/modules/submissions/submission.validation.js');
+const { ERROR_CODES } = await import('../src/constants/errorCodes.js');
 const { ApiError } = await import('../src/utils/ApiError.js');
 
 let passed = 0;
@@ -229,6 +240,65 @@ section('error translation');
   check('the generic 500 message reveals nothing internal', !boom.body.error.message.includes('hunter2'));
 }
 
+// --- upload configuration ---------------------------------------------------
+section('upload configuration');
+{
+  const { STORAGE_BASE, TEMP_DIR, SUBMISSIONS_DIR, MAX_FILE_SIZE, ALLOWED_MIME_TYPES, ZIP_MAGIC_BYTES, initStorage } = storageConfig;
+
+  check('the upload size limit is driven by configuration, not a magic number', MAX_FILE_SIZE === 7 * 1024 * 1024);
+  check('temp and submission directories live under the configured storage root', TEMP_DIR.startsWith(STORAGE_BASE) && SUBMISSIONS_DIR.startsWith(STORAGE_BASE));
+  check('uploads are staged somewhere other than their final home', TEMP_DIR !== SUBMISSIONS_DIR);
+  check('only ZIP mime types are allowed through', ALLOWED_MIME_TYPES.includes('application/zip') && !ALLOWED_MIME_TYPES.includes('application/octet-stream'));
+  check('the ZIP magic bytes are the local file header PK\\x03\\x04', Buffer.compare(ZIP_MAGIC_BYTES, Buffer.from([0x50, 0x4b, 0x03, 0x04])) === 0);
+
+  await initStorage();
+  const made = await nodeFs.readdir(STORAGE_BASE);
+  check('initStorage() creates both directories on a fresh install', made.includes('temp') && made.includes('submissions'));
+
+  const filter = (mimetype) =>
+    new Promise((resolve) => uploadMiddleware.fileFilter({}, { mimetype }, (error, accepted) => resolve({ error, accepted })));
+
+  check('a ZIP upload passes the first-layer mime filter', (await filter('application/zip')).accepted === true);
+  check('the Windows ZIP mime variant is accepted too', (await filter('application/x-zip-compressed')).accepted === true);
+
+  const rejected = await filter('text/plain');
+  check('a non-ZIP mime type is refused before anything is written to disk', !!rejected.error);
+  check('the refusal carries a code, so the route does not have to match on message text', rejected.error.code === ERROR_CODES.UNSUPPORTED_FILE_TYPE);
+}
+
+// --- upload error vocabulary ------------------------------------------------
+section('upload error vocabulary');
+{
+  for (const code of ['FILE_REQUIRED', 'FILE_TOO_LARGE', 'UNSUPPORTED_FILE_TYPE', 'CORRUPT_ARCHIVE', 'UPLOAD_FAILED', 'STORAGE_UNAVAILABLE']) {
+    check(`${code} is a defined, self-consistent error code`, ERROR_CODES[code] === code);
+  }
+}
+
+// --- submission validation --------------------------------------------------
+section('submission validation');
+{
+  const createGuard = validate({ body: createSubmissionSchema });
+
+  const noTitle = await runMiddleware(createGuard, { body: { description: 'no title here' } });
+  check('a submission without a title is rejected', noTitle.error?.code === 'VALIDATION_ERROR');
+
+  const req = { body: { title: '  Bankak  ' } };
+  const ok = await runMiddleware(createGuard, req);
+  check('a minimal valid submission body passes', ok.error === null);
+  check('the title is trimmed before it reaches the controller', req.body.title === 'Bankak');
+  check('description defaults to an empty string rather than undefined', req.body.description === '');
+
+  const smuggled = await runMiddleware(createGuard, { body: { title: 'Sneaky', status: 'scored', contestant: '507f1f77bcf86cd799439011' } });
+  check('status and ownership cannot be smuggled in through the body', smuggled.error?.code === 'VALIDATION_ERROR');
+
+  const longTitle = await runMiddleware(createGuard, { body: { title: 'x'.repeat(201) } });
+  check('an over-long title is rejected', longTitle.error?.code === 'VALIDATION_ERROR');
+
+  const idGuard = validate({ params: submissionIdParamSchema });
+  check('a malformed submission id is rejected before it reaches Mongo', (await runMiddleware(idGuard, { params: { submissionId: 'not-an-id' } })).error?.code === 'VALIDATION_ERROR');
+  check('a well-formed submission id passes', (await runMiddleware(idGuard, { params: { submissionId: '507f1f77bcf86cd799439011' } })).error === null);
+}
+
 // --- assembled HTTP surface -------------------------------------------------
 section('http surface');
 {
@@ -280,7 +350,17 @@ section('http surface');
   check('the Express fingerprint is hidden', !missing.headers.get('x-powered-by'));
   check('rate limiting is active', !!missing.headers.get('ratelimit-limit') || !!missing.headers.get('ratelimit'));
 
+  const createNoAuth = await call('/api/v1/submissions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: 'Anon' }) });
+  check('creating a submission is unreachable without authentication', createNoAuth.status === 401 && createNoAuth.body.error.code === 'AUTH_REQUIRED');
+
+  const uploadNoAuth = await call('/api/v1/submissions/507f1f77bcf86cd799439011/upload', { method: 'POST' });
+  check('the upload route rejects an anonymous caller before parsing any body', uploadNoAuth.status === 401 && uploadNoAuth.body.error.code === 'AUTH_REQUIRED');
+
+  const downloadNoAuth = await call('/api/v1/submissions/507f1f77bcf86cd799439011/download');
+  check('the download route is unreachable without authentication', downloadNoAuth.status === 401);
+
   server.close();
+  await nodeFs.rm(process.env.STORAGE_PATH, { recursive: true, force: true }).catch(() => {});
 }
 
 console.log(`\n${passed} passed, ${failures.length} failed\n`);
