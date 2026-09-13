@@ -21,6 +21,7 @@ const submissionSchema = new mongoose.Schema(
   {
     title: { type: String, required: true, trim: true, maxlength: 200 },
     description: { type: String, trim: true, maxlength: 5000, default: '' },
+    liveUrl: { type: String, trim: true, maxlength: 2048, default: '' },
     contestant: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
