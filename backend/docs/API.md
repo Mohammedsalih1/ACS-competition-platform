@@ -238,21 +238,34 @@ cannot be demoted, disabled or deleted (`409 LAST_ADMIN`).
 Disabling an account or resetting its password revokes that user's sessions
 immediately.
 
-### Submissions — contestant surface
+### Submissions — project management surface
 
-All three require a valid access token and the `contestant` role. Ownership is
-re-checked against `req.user.id` on every call, so a contestant can only ever
-reach their own submission.
+All submission endpoints require a valid access token. Contestants can create,
+read and update their own submissions. Judges and admins can list, inspect,
+change status and download submissions for review.
 
 | Method | Path | Body | Success |
 | --- | --- | --- | --- |
-| POST | `/api/v1/submissions` | `{ title, description? }` (JSON) | `201 { id, title, status }` |
+| POST | `/api/v1/submissions` | `{ title, description?, liveUrl? }` (JSON) | `201 { id, title, status }` |
+| GET | `/api/v1/submissions/mine` | `page?`, `limit?`, `status?` | `200 { submissions }` + `meta` |
+| GET | `/api/v1/submissions` | `page?`, `limit?`, `status?` | `200 { submissions }` + `meta` (judge/admin) |
+| GET | `/api/v1/submissions/:submissionId` | — | `200 { submission }` |
+| PATCH | `/api/v1/submissions/:submissionId` | `{ title?, description?, liveUrl? }` | `200 { submission }` (owner) |
+| PATCH | `/api/v1/submissions/:submissionId/status` | `{ status }` | `200 { submission }` (judge/admin) |
 | POST | `/api/v1/submissions/:submissionId/upload` | `projectFile` (multipart ZIP) | `201 { fileId, originalFileName }` |
 | GET | `/api/v1/submissions/:submissionId/download` | — | `200` ZIP stream |
 
 **Creating.** A submission starts as `draft` with `submittedAt: null`. `title` is
-required (1–200 chars); `description` is optional and defaults to `''`. The body
-is strict — sending `status` or `contestant` is a `400`, not a silent override.
+required (1–200 chars); `description` and `liveUrl` are optional and default to
+`''`. A non-empty `liveUrl` must be a valid URL. The body is strict — sending
+`status` or `contestant` is a `400`, not a silent override.
+
+**Reading and management.** `GET /submissions/mine` is limited to the caller's
+own entries. The global list is restricted to judges and admins and supports
+pagination and filtering by status. A detail response includes the contestant,
+live URL, lifecycle status, timestamps and safe file metadata, but never the
+absolute storage path. Contestants may update their own metadata; judges and
+admins may set `submitted`, `under_review` or `scored`.
 
 **Uploading.** Send `multipart/form-data` with the archive in a field named
 exactly `projectFile`. Do **not** set `Content-Type` by hand: the browser must
@@ -280,9 +293,6 @@ never leaves anything behind in `storage/temp`.
 attachment. `404 NOT_FOUND` when nothing has been uploaded yet. Absolute
 filesystem paths are never returned in any response.
 
-> **Not implemented yet.** There is no `GET /submissions` and no
-> `GET /submissions/:id`, and judges and admins currently have no access to
-> submissions at all. The judge-facing read surface is Phase 2 work.
 
 ### Health
 
