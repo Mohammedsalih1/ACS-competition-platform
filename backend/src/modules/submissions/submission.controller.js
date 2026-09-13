@@ -1,6 +1,10 @@
 import fs from "fs/promises";
 import * as submissionService from "./submission.service.js";
-import { sendCreated } from "../../utils/apiResponse.js";
+import {
+  buildPaginationMeta,
+  sendCreated,
+  sendSuccess,
+} from "../../utils/apiResponse.js";
 import ApiError from "../../utils/ApiError.js";
 import { ERROR_CODES } from "../../constants/errorCodes.js";
 
@@ -42,6 +46,7 @@ export const createSubmission = async (req, res) => {
     contestant: req.user.id,
     title: req.body.title,
     description: req.body.description,
+    liveUrl: req.body.liveUrl,
   });
   return sendCreated(res, {
     id: submission.id,
@@ -50,12 +55,52 @@ export const createSubmission = async (req, res) => {
   });
 };
 
+export const listSubmissions = async (req, res) => {
+  const { page, limit } = req.query;
+  const { items, total } = await submissionService.listSubmissions(req.query);
+  return sendSuccess(res, { submissions: items }, {
+    meta: buildPaginationMeta({ page, limit, total }),
+  });
+};
+
+export const listMySubmissions = async (req, res) => {
+  const { page, limit } = req.query;
+  const { items, total } = await submissionService.listSubmissions({
+    ...req.query,
+    contestant: req.user.id,
+  });
+  return sendSuccess(res, { submissions: items }, {
+    meta: buildPaginationMeta({ page, limit, total }),
+  });
+};
+
+export const getSubmission = async (req, res) => {
+  const submission = await submissionService.getSubmissionForViewer(req.params.submissionId, req.user);
+  return sendSuccess(res, { submission });
+};
+
+export const updateSubmission = async (req, res) => {
+  const submission = await submissionService.updateSubmission(
+    req.params.submissionId,
+    req.user.id,
+    req.body,
+  );
+  return sendSuccess(res, { submission });
+};
+
+export const updateSubmissionStatus = async (req, res) => {
+  const submission = await submissionService.updateSubmissionStatus(
+    req.params.submissionId,
+    req.body.status,
+  );
+  return sendSuccess(res, { submission });
+};
+
 // GET /:submissionId/download
 export const downloadSubmissionFile = async (req, res) => {
-  const contestantId = req.user.id;
   const { submissionId } = req.params;
 
-  await submissionService.verifyOwnership(submissionId, contestantId);
+  await submissionService.getSubmissionForViewer(submissionId, req.user);
   const file = await submissionService.getLatestUploadedFile(submissionId);
 
   const safeFileName = file.originalFileName || "project.zip";
