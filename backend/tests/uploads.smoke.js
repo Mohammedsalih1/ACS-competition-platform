@@ -121,11 +121,11 @@ const login = async (email, password) => {
   return res.body.data.accessToken;
 };
 
-const createSubmission = async (token, title = 'My Project', liveUrl) => {
+const createSubmission = async (token, title = 'My Project', liveUrl = 'https://demo.acs.test') => {
   const res = await json('/submissions', {
     method: 'POST',
     token,
-    body: { title, ...(liveUrl ? { liveUrl } : {}) },
+    body: { title, liveUrl },
   });
   if (!res.body?.data?.id) throw new Error(`could not create submission: ${JSON.stringify(res.body)}`);
   return res.body.data.id;
@@ -160,7 +160,7 @@ console.log('\nACS submissions & upload smoke test\n');
 // --- creating a submission --------------------------------------------------
 console.log('submission creation');
 {
-  const created = await json('/submissions', { method: 'POST', token: contestantToken, body: { title: 'Bankak', description: 'A transactions platform' } });
+  const created = await json('/submissions', { method: 'POST', token: contestantToken, body: { title: 'Bankak', description: 'A transactions platform', liveUrl: 'https://bankak.example' } });
   check('a contestant can create a submission', created.status === 201 && !!created.body.data.id);
   check('a new submission starts as a draft', created.body.data.status === SUBMISSION_STATUS.DRAFT);
 

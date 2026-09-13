@@ -282,11 +282,15 @@ section('submission validation');
   const noTitle = await runMiddleware(createGuard, { body: { description: 'no title here' } });
   check('a submission without a title is rejected', noTitle.error?.code === 'VALIDATION_ERROR');
 
-  const req = { body: { title: '  Bankak  ' } };
+  const req = { body: { title: '  Bankak  ', liveUrl: '  https://bankak.example  ' } };
   const ok = await runMiddleware(createGuard, req);
   check('a minimal valid submission body passes', ok.error === null);
   check('the title is trimmed before it reaches the controller', req.body.title === 'Bankak');
   check('description defaults to an empty string rather than undefined', req.body.description === '');
+  check('the live URL is trimmed before it reaches the controller', req.body.liveUrl === 'https://bankak.example');
+
+  const noLiveUrl = await runMiddleware(createGuard, { body: { title: 'Missing URL' } });
+  check('a submission without a live URL is rejected', noLiveUrl.error?.code === 'VALIDATION_ERROR');
 
   const smuggled = await runMiddleware(createGuard, { body: { title: 'Sneaky', status: 'scored', contestant: '507f1f77bcf86cd799439011' } });
   check('status and ownership cannot be smuggled in through the body', smuggled.error?.code === 'VALIDATION_ERROR');

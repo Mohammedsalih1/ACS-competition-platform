@@ -7,16 +7,13 @@
 import { z } from 'zod';
 import { objectIdSchema } from '../users/user.validation.js';
 
-const liveUrlSchema = z.union([
-    z.string().trim().url('Live URL must be a valid URL').max(2048),
-    z.literal(''),
-]);
+const liveUrlSchema = z.string().trim().url('Live URL must be a valid URL').max(2048);
 
 export const createSubmissionSchema = z
     .object({
         title: z.string().trim().min(1, 'Title is required').max(200),
         description: z.string().trim().max(5000).optional().default(''),
-        liveUrl: liveUrlSchema.optional().default(''),
+        liveUrl: liveUrlSchema,
     })
     .strict();
 
