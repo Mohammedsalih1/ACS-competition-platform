@@ -11,7 +11,10 @@ import ApiError from "../../utils/ApiError.js";
 import { ERROR_CODES } from "../../constants/errorCodes.js";
 import {
   createSubmissionSchema,
+  listSubmissionsQuerySchema,
   submissionIdParamSchema,
+  updateSubmissionSchema,
+  updateSubmissionStatusSchema,
 } from "./submission.validation.js";
 
 const router = Router();
@@ -61,12 +64,46 @@ const uploadHandler = (req, res, next) => {
 
 router.use(authenticate);
 
+router.get(
+  "/",
+  authorize(ROLES.JUDGE, ROLES.ADMIN),
+  validate({ query: listSubmissionsQuerySchema }),
+  asyncHandler(controller.listSubmissions),
+);
+
+router.get(
+  "/mine",
+  authorize(ROLES.CONTESTANT),
+  validate({ query: listSubmissionsQuerySchema }),
+  asyncHandler(controller.listMySubmissions),
+);
+
 // POST / — create a new submission
 router.post(
   "/",
   authorize(ROLES.CONTESTANT),
   validate({ body: createSubmissionSchema }),
   asyncHandler(controller.createSubmission),
+);
+
+router.get(
+  "/:submissionId",
+  validate({ params: submissionIdParamSchema }),
+  asyncHandler(controller.getSubmission),
+);
+
+router.patch(
+  "/:submissionId",
+  authorize(ROLES.CONTESTANT),
+  validate({ params: submissionIdParamSchema, body: updateSubmissionSchema }),
+  asyncHandler(controller.updateSubmission),
+);
+
+router.patch(
+  "/:submissionId/status",
+  authorize(ROLES.JUDGE, ROLES.ADMIN),
+  validate({ params: submissionIdParamSchema, body: updateSubmissionStatusSchema }),
+  asyncHandler(controller.updateSubmissionStatus),
 );
 
 // POST /:submissionId/upload — upload project ZIP
@@ -81,7 +118,7 @@ router.post(
 // GET /:submissionId/download — download project ZIP
 router.get(
   "/:submissionId/download",
-  authorize(ROLES.CONTESTANT),
+  authorize(ROLES.CONTESTANT, ROLES.JUDGE, ROLES.ADMIN),
   validate({ params: submissionIdParamSchema }),
   asyncHandler(controller.downloadSubmissionFile),
 );
