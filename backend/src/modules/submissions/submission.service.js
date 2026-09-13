@@ -24,8 +24,60 @@ async function verifyMagicBytes(filePath) {
   }
 }
 
-export const createSubmission = async ({ contestant, title, description }) => {
-  return Submission.create({ contestant, title, description });
+export const createSubmission = async ({ contestant, title, description, liveUrl }) => {
+  return Submission.create({ contestant, title, description, liveUrl });
+};
+
+const submissionView = (query) => query
+  .populate('contestant', 'name email role')
+  .populate('files', 'originalFileName fileSize mimeType status createdAt')
+  .select('-__v');
+
+export const getSubmissionById = async (submissionId) => {
+  const submission = await submissionView(Submission.findById(submissionId));
+  if (!submission) throw ApiError.notFound('Submission not found');
+  return submission;
+};
+
+export const getSubmissionForViewer = async (submissionId, user) => {
+  const submission = await getSubmissionById(submissionId);
+  const isOwner = String(submission.contestant?._id) === String(user.id);
+  const canReview = ['judge', 'admin'].includes(user.role);
+  if (!isOwner && !canReview) throw ApiError.forbidden('You do not have access to this submission');
+  return submission;
+};
+
+export const listSubmissions = async ({ page, limit, status, sort, contestant }) => {
+  const filter = {};
+  if (status) filter.status = status;
+  if (contestant) filter.contestant = contestant;
+
+  const [items, total] = await Promise.all([
+    submissionView(Submission.find(filter))
+      .sort(sort)
+      .skip((page - 1) * limit)
+      .limit(limit),
+    Submission.countDocuments(filter),
+  ]);
+  return { items, total };
+};
+
+export const updateSubmission = async (submissionId, contestantId, updates) => {
+  const submission = await Submission.findOne({ _id: submissionId, contestant: contestantId });
+  if (!submission) throw ApiError.forbidden('You do not own this submission');
+  Object.assign(submission, updates);
+  await submission.save();
+  return getSubmissionById(submissionId);
+};
+
+export const updateSubmissionStatus = async (submissionId, status) => {
+  const submission = await Submission.findByIdAndUpdate(
+    submissionId,
+    { status, ...(status === SUBMISSION_STATUS.SUBMITTED && { submittedAt: new Date() }) },
+    { new: true, runValidators: true },
+  );
+  if (!submission) throw ApiError.notFound('Submission not found');
+  return getSubmissionById(submissionId);
 };
 
 async function safeMove(src, dest) {
