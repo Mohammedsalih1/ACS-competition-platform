@@ -246,7 +246,7 @@ change status and download submissions for review.
 
 | Method | Path | Body | Success |
 | --- | --- | --- | --- |
-| POST | `/api/v1/submissions` | `{ title, description?, liveUrl? }` (JSON) | `201 { id, title, status }` |
+| POST | `/api/v1/submissions` | `{ title, liveUrl, description? }` (JSON) | `201 { id, title, status }` |
 | GET | `/api/v1/submissions/mine` | `page?`, `limit?`, `status?` | `200 { submissions }` + `meta` |
 | GET | `/api/v1/submissions` | `page?`, `limit?`, `status?` | `200 { submissions }` + `meta` (judge/admin) |
 | GET | `/api/v1/submissions/:submissionId` | — | `200 { submission }` |
@@ -256,8 +256,8 @@ change status and download submissions for review.
 | GET | `/api/v1/submissions/:submissionId/download` | — | `200` ZIP stream |
 
 **Creating.** A submission starts as `draft` with `submittedAt: null`. `title` is
-required (1–200 chars); `description` and `liveUrl` are optional and default to
-`''`. A non-empty `liveUrl` must be a valid URL. The body is strict — sending
+required (1–200 chars), and `liveUrl` is required and must be a valid URL;
+`description` is optional and defaults to `''`. The body is strict — sending
 `status` or `contestant` is a `400`, not a silent override.
 
 **Reading and management.** `GET /submissions/mine` is limited to the caller's
