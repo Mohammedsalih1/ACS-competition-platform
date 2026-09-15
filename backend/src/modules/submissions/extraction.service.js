@@ -25,7 +25,7 @@ import {
   IGNORED_PATTERNS,
 } from "../../config/storage.config.js";
 
-// ── File-type classification map ────────────────────────────────────
+// File-type classification map
 const EXTENSION_MAP = {
   // Web
   ".html": "html",
@@ -113,7 +113,7 @@ function classifyFileType(ext) {
   return EXTENSION_MAP[ext.toLowerCase()] || "other";
 }
 
-// ── Security helpers ────────────────────────────────────────────────
+// Security helpers
 
 /**
  * Returns true when the entry name contains a path-traversal attempt.
@@ -137,7 +137,7 @@ function isIgnored(entryName) {
   );
 }
 
-// ── Core extraction ─────────────────────────────────────────────────
+// Core extraction logic
 
 /**
  * Extract a ZIP file into `storage/submissions/<submissionId>/extracted/`.
@@ -172,7 +172,7 @@ export async function extractAndProcess(file, submission) {
       throw ApiError.internal("File storage path is missing");
     }
 
-    // ── Open ZIP & validate entries ──────────────────────────────────
+    // Open ZIP & validate entries
     let zip;
     try {
       zip = new AdmZip(zipPath);
@@ -226,7 +226,7 @@ export async function extractAndProcess(file, submission) {
       }
     }
 
-    // ── Extract (entry by entry for fine-grained control) ────────────
+    // Extract entry by entry
     await fs.mkdir(extractDir, { recursive: true });
 
     for (const entry of entries) {
@@ -252,13 +252,13 @@ export async function extractAndProcess(file, submission) {
       }
     }
 
-    // ── Handle single root folder ────────────────────────────────────
+    // Handle single root folder
     // If the ZIP contains a single top-level directory and nothing else,
     // hoist its contents up one level so the tree isn't wrapped in a
     // redundant folder (common with GitHub-downloaded ZIPs).
     await hoistSingleRootFolder(extractDir);
 
-    // ── Build file tree ──────────────────────────────────────────────
+    // Build file tree
     const tree = await buildFileTree(extractDir, extractDir);
 
     const totalFiles = tree.filter((e) => e.type === "file").length;
@@ -275,7 +275,7 @@ export async function extractAndProcess(file, submission) {
       );
     }
 
-    // ── Persist ──────────────────────────────────────────────────────
+    // Persist tree to DB
     structure.tree = tree;
     structure.totalFiles = totalFiles;
     structure.totalFolders = totalFolders;
@@ -308,7 +308,7 @@ export async function extractAndProcess(file, submission) {
   }
 }
 
-// ── File tree builder ───────────────────────────────────────────────
+// File tree builder
 
 /**
  * Recursively walks `dir` and returns a flat, sorted list of tree entries.
@@ -403,7 +403,7 @@ async function hoistSingleRootFolder(extractDir) {
   await fs.rmdir(singleDir);
 }
 
-// ── Query helpers ───────────────────────────────────────────────────
+// Query helpers
 
 /**
  * Returns the ProjectStructure for a submission (flat tree).
