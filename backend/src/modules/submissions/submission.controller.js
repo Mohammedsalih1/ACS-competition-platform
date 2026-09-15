@@ -112,3 +112,31 @@ export const downloadSubmissionFile = async (req, res) => {
 
   return res.sendFile(file.storagePath);
 };
+
+// GET /:submissionId/structure
+export const getProjectStructure = async (req, res) => {
+  const { submissionId } = req.params;
+  const structure = await submissionService.getSubmissionProjectStructure(
+    submissionId,
+    req.user,
+  );
+  return sendSuccess(res, { projectStructure: structure });
+};
+
+// GET /:submissionId/files/*
+export const getFileContent = async (req, res) => {
+  const { submissionId } = req.params;
+  // The file path comes as a wildcard param (everything after /files/)
+  const filePath = req.params[0];
+
+  if (!filePath) {
+    throw ApiError.badRequest("File path is required");
+  }
+
+  const result = await submissionService.getSubmissionFileContent(
+    submissionId,
+    filePath,
+    req.user,
+  );
+  return sendSuccess(res, result);
+};

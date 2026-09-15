@@ -9,6 +9,12 @@ import {
   SUBMISSIONS_DIR,
   ZIP_MAGIC_BYTES,
 } from "../../config/storage.config.js";
+import {
+  extractAndProcess,
+  getProjectStructure as fetchProjectStructure,
+  getFileContent as fetchFileContent,
+  buildNestedTree,
+} from "./extraction.service.js";
 
 // ── Helpers ─────────────────────────────────────────────────────────
 
@@ -205,6 +211,18 @@ export const uploadZipForSubmission = async ({
     }
     await submission.save();
 
+    // ── Phase 2: extract ZIP and build project structure ──────────
+    // Runs synchronously so the upload response includes extraction
+    // status. For very large archives a future iteration could defer
+    // this to a background job.
+    try {
+      await extractAndProcess(file, submission);
+    } catch (extractionError) {
+      // Extraction failure is non-fatal for the upload itself — the ZIP
+      // is stored successfully, extraction can be retried.
+      // The error is already persisted in ProjectStructure.error.
+    }
+
     return file;
   } catch (error) {
     file.status = UPLOAD_STATUS.FAILED;
@@ -222,13 +240,29 @@ export const uploadZipForSubmission = async ({
 export const getLatestUploadedFile = async (submissionId) => {
   const file = await File.findOne({
     submission: submissionId,
-    status: UPLOAD_STATUS.UPLOADED,
+    status: { $in: [UPLOAD_STATUS.UPLOADED, UPLOAD_STATUS.EXTRACTED] },
   })
     .sort({ createdAt: -1 })
-    .select("+storagePath");
+    .select("+storagePath +extractedPath");
 
   if (!file) {
     throw ApiError.notFound("No file uploaded for this submission yet");
   }
   return file;
+};
+
+// ── Project structure helpers (delegate to extraction service) ──────
+
+export const getSubmissionProjectStructure = async (submissionId, user) => {
+  await getSubmissionForViewer(submissionId, user);
+  const structure = await fetchProjectStructure(submissionId);
+  return {
+    ...structure.toJSON(),
+    tree: buildNestedTree(structure.tree),
+  };
+};
+
+export const getSubmissionFileContent = async (submissionId, filePath, user) => {
+  await getSubmissionForViewer(submissionId, user);
+  return fetchFileContent(submissionId, filePath);
 };

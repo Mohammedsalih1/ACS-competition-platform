@@ -123,4 +123,20 @@ router.get(
   asyncHandler(controller.downloadSubmissionFile),
 );
 
+// GET /:submissionId/structure — project file tree
+router.get(
+  "/:submissionId/structure",
+  authorize(ROLES.CONTESTANT, ROLES.JUDGE, ROLES.ADMIN),
+  validate({ params: submissionIdParamSchema }),
+  asyncHandler(controller.getProjectStructure),
+);
+
+// GET /:submissionId/files/* — read a single file's content
+router.get(
+  "/:submissionId/files/*",
+  authorize(ROLES.CONTESTANT, ROLES.JUDGE, ROLES.ADMIN),
+  validate({ params: submissionIdParamSchema }),
+  asyncHandler(controller.getFileContent),
+);
+
 export default router;
