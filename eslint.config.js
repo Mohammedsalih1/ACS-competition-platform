@@ -5,7 +5,10 @@ import reactRefresh from 'eslint-plugin-react-refresh'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  // `backend/` is a separate Node package with its own tooling. Linting it with
+  // this config applied browser globals to server code, so every `process` and
+  // `Buffer` reported as no-undef.
+  globalIgnores(['dist', 'backend']),
   {
     files: ['**/*.{js,jsx}'],
     extends: [

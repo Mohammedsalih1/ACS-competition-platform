@@ -238,6 +238,62 @@ cannot be demoted, disabled or deleted (`409 LAST_ADMIN`).
 Disabling an account or resetting its password revokes that user's sessions
 immediately.
 
+### Submissions — project management surface
+
+All submission endpoints require a valid access token. Contestants can create,
+read and update their own submissions. Judges and admins can list, inspect,
+change status and download submissions for review.
+
+| Method | Path | Body | Success |
+| --- | --- | --- | --- |
+| POST | `/api/v1/submissions` | `{ title, liveUrl, description? }` (JSON) | `201 { id, title, status }` |
+| GET | `/api/v1/submissions/mine` | `page?`, `limit?`, `status?` | `200 { submissions }` + `meta` |
+| GET | `/api/v1/submissions` | `page?`, `limit?`, `status?` | `200 { submissions }` + `meta` (judge/admin) |
+| GET | `/api/v1/submissions/:submissionId` | — | `200 { submission }` |
+| PATCH | `/api/v1/submissions/:submissionId` | `{ title?, description?, liveUrl? }` | `200 { submission }` (owner) |
+| PATCH | `/api/v1/submissions/:submissionId/status` | `{ status }` | `200 { submission }` (judge/admin) |
+| POST | `/api/v1/submissions/:submissionId/upload` | `projectFile` (multipart ZIP) | `201 { fileId, originalFileName }` |
+| GET | `/api/v1/submissions/:submissionId/download` | — | `200` ZIP stream |
+
+**Creating.** A submission starts as `draft` with `submittedAt: null`. `title` is
+required (1–200 chars), and `liveUrl` is required and must be a valid URL;
+`description` is optional and defaults to `''`. The body is strict — sending
+`status` or `contestant` is a `400`, not a silent override.
+
+**Reading and management.** `GET /submissions/mine` is limited to the caller's
+own entries. The global list is restricted to judges and admins and supports
+pagination and filtering by status. A detail response includes the contestant,
+live URL, lifecycle status, timestamps and safe file metadata, but never the
+absolute storage path. Contestants may update their own metadata; judges and
+admins may set `submitted`, `under_review` or `scored`.
+
+**Uploading.** Send `multipart/form-data` with the archive in a field named
+exactly `projectFile`. Do **not** set `Content-Type` by hand: the browser must
+generate the multipart boundary or the server sees no file.
+
+```js
+const form = new FormData();
+form.append('projectFile', file);          // file is a File from an <input type="file">
+await api(`/submissions/${id}/upload`, { method: 'POST', body: form });
+```
+
+The archive is checked twice — the declared mime type first, then the real
+`PK\x03\x04` magic bytes and a central-directory parse — so a renamed `.exe`
+is rejected. The first accepted upload flips the submission to `submitted` and
+stamps `submittedAt`. Uploading again adds a new revision; earlier ones are kept
+and the status does not reset.
+
+Limits and failures: `MAX_UPLOAD_SIZE_MB` (default 50) → `413 FILE_TOO_LARGE`;
+wrong mime or non-ZIP bytes → `415 UNSUPPORTED_FILE_TYPE`; unreadable or empty
+archive → `400 CORRUPT_ARCHIVE`; no file part → `400 FILE_REQUIRED`. A rejected
+upload leaves a `File` record with `status: 'failed'` rather than vanishing, and
+never leaves anything behind in `storage/temp`.
+
+**Downloading.** Returns the most recent successfully uploaded revision as an
+attachment. `404 NOT_FOUND` when nothing has been uploaded yet. Absolute
+filesystem paths are never returned in any response.
+
+
 ### Health
 
 `GET /api/v1/health` — public. Returns uptime and database connection state.
@@ -501,8 +557,9 @@ Six things to keep to, so the API stays coherent:
 
 ### For the file-storage module specifically
 
-- `Submission` (`src/models/submission.model.js`) is a **placeholder**, added
-  only so file records have something to reference. Extend or replace it freely.
+- `Submission` (`src/models/submission.model.js`) is now a real model owned by
+  the submissions module — see §4. `File` records point at it via
+  `File.submission` and are mirrored onto `Submission.files`.
 - The upload error codes in §5 are already defined — throw them via `ApiError`
   and uploads will fail in the same envelope as everything else.
 - `req.user` is available in any route mounted after `authenticate`, so file

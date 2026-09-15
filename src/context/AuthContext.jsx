@@ -1,44 +1,58 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { api, setAccessToken, clearAccessToken, refreshTokens } from '../api/client';
 
-const AuthContext = createContext(null);
+export const AuthContext = createContext(null);
 
-function AuthProvider({ children }) {
+export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
-  const login = (userData) => {
-    setUser(userData);
+  // On boot, try to restore the session by refreshing the access token.
+  useEffect(() => {
+    refreshTokens()
+      .then((data) => {
+        setAccessToken(data.accessToken);
+        setUser(data.user);
+      })
+      .catch(() => {
+        setUser(null);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, []);
+
+  // Exchange email/password for an access token and store the user in memory.
+  const login = async (email, password) => {
+    const data = await api('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    });
+    setAccessToken(data.accessToken);
+    setUser(data.user);
+    return data;
   };
 
-  const logout = () => {
-    setUser(null);
+  // Invalidate the server session, clear the local user, and return to login.
+  const logout = async () => {
+    try {
+      await api('/auth/logout', { method: 'POST' });
+    } finally {
+      clearAccessToken();
+      setUser(null);
+      navigate('/login');
+    }
   };
 
-  const isAuthenticated = Boolean(user);
+  const value = {
+    user,
+    loading,
+    login,
+    logout,
+    isAuthenticated: !!user,
+  };
 
-  return (
-    <AuthContext.Provider
-      value={{
-        user,
-        login,
-        logout,
-        isAuthenticated,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
-
-function useAuth() {
-  const context = useContext(AuthContext);
-
-  if (!context) {
-    throw new Error(
-      "useAuth must be used inside an AuthProvider"
-    );
-  }
-
-  return context;
-}
-
-export { AuthProvider, useAuth };

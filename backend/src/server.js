@@ -7,6 +7,7 @@
  */
 import { createApp } from './app.js';
 import { connectDatabase, disconnectDatabase } from './config/database.js';
+import { initStorage } from './config/storage.config.js';
 import { env } from './config/env.js';
 import { logger } from './utils/logger.js';
 
@@ -15,6 +16,14 @@ const start = async () => {
     await connectDatabase();
   } catch (error) {
     logger.error('Could not connect to MongoDB:', error.message);
+    process.exit(1);
+  }
+
+  // Upload targets must exist before the first request, not after the first 500.
+  try {
+    await initStorage();
+  } catch (error) {
+    logger.error('Could not prepare the storage directories:', error.message);
     process.exit(1);
   }
 

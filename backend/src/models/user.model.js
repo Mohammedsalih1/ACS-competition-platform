@@ -77,9 +77,7 @@ userSchema.pre('save', async function hashPassword(next) {
 
   this.password = await bcrypt.hash(this.password, env.BCRYPT_ROUNDS);
 
-  // Backdate one second: the JWT `iat` claim has second precision, so a token
-  // minted in the same second as the change would otherwise look "too old".
-  if (!this.isNew) this.passwordChangedAt = new Date(Date.now() - 1000);
+  if (!this.isNew) this.passwordChangedAt = new Date();
 
   return next();
 });
@@ -95,7 +93,11 @@ userSchema.methods.comparePassword = function comparePassword(candidate) {
  */
 userSchema.methods.passwordChangedAfter = function passwordChangedAfter(issuedAtSeconds) {
   if (!this.passwordChangedAt) return false;
-  return Math.floor(this.passwordChangedAt.getTime() / 1000) > issuedAtSeconds;
+  // `iat` has second precision, so a token minted in the SAME second as the
+  // change is indistinguishable from one minted just before it. Compare with
+  // >= and reject it: changing a password revokes every session anyway, so the
+  // only token this can cost is one the user was about to be logged out of.
+  return Math.floor(this.passwordChangedAt.getTime() / 1000) >= issuedAtSeconds;
 };
 
 export const User = mongoose.model('User', userSchema);
