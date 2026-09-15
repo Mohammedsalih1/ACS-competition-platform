@@ -33,7 +33,6 @@ const projectStructureSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Submission',
       required: true,
-      index: true,
     },
     file: {
       type: mongoose.Schema.Types.ObjectId,
