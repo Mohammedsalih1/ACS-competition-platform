@@ -285,7 +285,6 @@ export async function extractAndProcess(file, submission) {
 
     // Mark the File record as extracted
     file.extractedPath = extractDir;
-    file.status = UPLOAD_STATUS.EXTRACTED;
     await file.save();
 
     return structure;
