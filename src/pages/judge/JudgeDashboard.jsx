@@ -1,10 +1,20 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { mockProjects } from "../../data/mockProjects";
+import { api } from "../../api/client";
 import ProjectCard from "../../components/judge/ProjectCard";
 
 function JudgeDashboard() {
+  const [projects, setProjects] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api("/submissions")
+      .then((data) => setProjects(data.submissions))
+      .finally(() => setLoading(false));
+  }, []);
+
   // Show only a small preview on the dashboard.
-  const recentProjects = mockProjects.slice(0, 3);
+  const recentProjects = projects.slice(0, 3);
 
   return (
     <div className="space-y-8">
@@ -28,14 +38,14 @@ function JudgeDashboard() {
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           title="Assigned Projects"
-          value={mockProjects.length}
+          value={projects.length}
           description="Projects assigned to you"
         />
 
         <StatCard
           title="Submitted"
           value={
-            mockProjects.filter(
+            projects.filter(
               (project) => project.status === "submitted"
             ).length
           }
@@ -45,7 +55,7 @@ function JudgeDashboard() {
         <StatCard
           title="Under Review"
           value={
-            mockProjects.filter(
+            projects.filter(
               (project) => project.status === "under_review"
             ).length
           }
@@ -55,8 +65,8 @@ function JudgeDashboard() {
         <StatCard
           title="Completed"
           value={
-            mockProjects.filter(
-              (project) => project.status === "judged"
+            projects.filter(
+              (project) => project.status === "scored"
             ).length
           }
           description="Review completed"
@@ -90,7 +100,11 @@ function JudgeDashboard() {
         </div>
 
         {/* Project Cards */}
-        {recentProjects.length > 0 ? (
+        {loading ? (
+          <div className="flex justify-center py-12">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-acs-purple border-t-transparent" />
+          </div>
+        ) : recentProjects.length > 0 ? (
           <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
             {recentProjects.map((project) => (
               <ProjectCard

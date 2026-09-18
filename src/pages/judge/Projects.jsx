@@ -1,7 +1,17 @@
-import { mockProjects } from "../../data/mockProjects";
+import { useEffect, useState } from "react";
+import { api } from "../../api/client";
 import ProjectCard from "../../components/judge/ProjectCard";
 
 function Projects() {
+  const [projects, setProjects] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api("/submissions")
+      .then((data) => setProjects(data.submissions))
+      .finally(() => setLoading(false));
+  }, []);
+
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -23,21 +33,27 @@ function Projects() {
           </div>
 
           <div className="shrink-0 rounded-xl bg-acs-purple px-4 py-2.5 text-sm font-semibold text-white">
-            {mockProjects.length} Projects
+            {projects.length} Projects
           </div>
         </div>
       </section>
 
       {/* Projects */}
       <section>
-        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-          {mockProjects.map((project) => (
-            <ProjectCard
-              key={project.id}
-              project={project}
-            />
-          ))}
-        </div>
+        {loading ? (
+          <div className="flex justify-center py-12">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-acs-purple border-t-transparent" />
+          </div>
+        ) : (
+          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+            {projects.map((project) => (
+              <ProjectCard
+                key={project.id}
+                project={project}
+              />
+            ))}
+          </div>
+        )}
       </section>
     </div>
   );
