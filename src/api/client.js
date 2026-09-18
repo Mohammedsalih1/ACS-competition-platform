@@ -73,4 +73,44 @@ export async function api(path, options = {}) {
   return body.data;
 }
 
+// Downloads a binary endpoint with the same auth logic
+// as api(), then triggers a browser save. Kept separate from api() because
+// the response body is a blob, not JSON.
+export async function downloadFile(path) {
+  const send = () =>
+    fetch(API + path, {
+      credentials: 'include',
+      headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+    });
+
+  let response = await send();
+
+  if (response.status === 401) {
+    const body = await response.clone().json().catch(() => null);
+    if (body?.error?.code === 'TOKEN_EXPIRED') {
+      await refreshTokens();
+      response = await send();
+    }
+  }
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => null);
+    throw Object.assign(new Error(body?.error?.message || 'Download failed'), body?.error);
+  }
+
+  const blob = await response.blob();
+  const disposition = response.headers.get('Content-Disposition') || '';
+  const match = disposition.match(/filename="?([^"]+)"?/);
+  const filename = match ? decodeURIComponent(match[1]) : 'submission.zip';
+
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
 export { refreshTokens };
