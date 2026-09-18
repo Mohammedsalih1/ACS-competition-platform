@@ -1,13 +1,42 @@
+import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { mockProjects } from "../../data/mockProjects";
+import { api, downloadFile } from "../../api/client";
 import ProjectStatus from "../../components/judge/ProjectStatus";
 
 function ProjectDetails() {
   const { projectId } = useParams();
+  const [project, setProject] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [downloading, setDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState(null);
 
-  const project = mockProjects.find(
-    (item) => item.id === projectId
-  );
+  useEffect(() => {
+    setLoading(true);
+    api(`/submissions/${projectId}`)
+      .then((data) => setProject(data.submission))
+      .catch(() => setProject(null))
+      .finally(() => setLoading(false));
+  }, [projectId]);
+
+  const handleDownload = async () => {
+    setDownloading(true);
+    setDownloadError(null);
+    try {
+      await downloadFile(`/submissions/${projectId}/download`);
+    } catch (err) {
+      setDownloadError(err?.message || "Download failed. Please try again.");
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-acs-purple border-t-transparent" />
+      </div>
+    );
+  }
 
   // Project not found
   if (!project) {
@@ -52,7 +81,7 @@ function ProjectDetails() {
         <span className="text-acs-text-muted">/</span>
 
         <span className="font-medium text-acs-purple">
-          {project.name}
+          {project.title}
         </span>
       </nav>
 
@@ -61,13 +90,13 @@ function ProjectDetails() {
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
           <div className="flex items-start gap-4">
             <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-acs-purple text-xl font-bold text-white">
-              {project.name.charAt(0).toUpperCase()}
+              {project.title.charAt(0).toUpperCase()}
             </div>
 
             <div>
               <div className="flex flex-wrap items-center gap-3">
                 <h1 className="text-2xl font-bold text-acs-purple sm:text-3xl">
-                  {project.name}
+                  {project.title}
                 </h1>
 
                 <ProjectStatus status={project.status} />
@@ -82,15 +111,32 @@ function ProjectDetails() {
             </div>
           </div>
 
-          {/* Live Project */}
-          <a
-            href={project.liveUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex shrink-0 items-center justify-center rounded-xl bg-acs-orange px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-acs-orange-dark"
-          >
-            Open Live Project ↗
-          </a>
+          {/* Actions */}
+          <div className="flex shrink-0 flex-col items-stretch gap-2 sm:items-end">
+            <div className="flex flex-wrap gap-3">
+              <a
+                href={project.liveUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex shrink-0 items-center justify-center rounded-xl bg-acs-orange px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-acs-orange-dark"
+              >
+                Open Live Project ↗
+              </a>
+
+              <button
+                type="button"
+                onClick={handleDownload}
+                disabled={downloading}
+                className="inline-flex shrink-0 items-center justify-center rounded-xl border border-acs-purple bg-white px-5 py-3 text-sm font-bold text-acs-purple shadow-sm transition hover:bg-acs-purple/5 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {downloading ? "Downloading…" : "Download ZIP"}
+              </button>
+            </div>
+
+            {downloadError && (
+              <p className="text-xs font-medium text-destructive">{downloadError}</p>
+            )}
+          </div>
         </div>
       </section>
 
