@@ -11,7 +11,7 @@ const statusConfig = {
         "bg-status-info/10 text-status-info border-status-info/20",
     },
   
-    judged: {
+    scored: {
       label: "Judged",
       className:
         "bg-status-success/10 text-status-success border-status-success/20",
