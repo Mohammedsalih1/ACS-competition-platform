@@ -13,7 +13,6 @@ export default function Sidebar() {
     <aside className="w-64 h-screen bg-primary flex flex-col fixed left-0 top-0">
       <div className="p-5 flex items-center gap-3 border-b border-white/10">
         <img src={acsLogo} alt="ACS" className="h-8" />
-        <span className="text-white font-bold text-lg">ACS</span>
       </div>
 
       <nav className="flex-1 p-3 space-y-1 mt-2">
@@ -22,8 +21,8 @@ export default function Sidebar() {
           className={({ isActive }) =>
             `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors duration-150
              ${isActive
-               ? 'bg-white/15 text-white border-l-2 border-accent'
-               : 'text-white/70 hover:bg-white/10 hover:text-white'}`
+              ? 'bg-white/15 text-white border-l-2 border-accent'
+              : 'text-white/70 hover:bg-white/10 hover:text-white'}`
           }
         >
           <LayoutDashboard className="h-4 w-4" />
@@ -34,8 +33,8 @@ export default function Sidebar() {
           className={({ isActive }) =>
             `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors duration-150
              ${isActive
-               ? 'bg-white/15 text-white border-l-2 border-accent'
-               : 'text-white/70 hover:bg-white/10 hover:text-white'}`
+              ? 'bg-white/15 text-white border-l-2 border-accent'
+              : 'text-white/70 hover:bg-white/10 hover:text-white'}`
           }
         >
           <Upload className="h-4 w-4" />
