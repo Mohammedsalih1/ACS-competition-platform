@@ -70,6 +70,7 @@ export default function SubmitPage() {
         method: 'POST',
         body: JSON.stringify({
           title: data.title,
+          liveUrl: data.liveUrl,
           description: data.description || '',
         }),
       });
