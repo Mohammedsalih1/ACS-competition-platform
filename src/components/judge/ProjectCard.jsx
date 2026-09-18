@@ -8,12 +8,12 @@ function ProjectCard({ project }) {
       <div className="flex items-start justify-between gap-4">
         <div className="flex min-w-0 items-center gap-3">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-acs-purple text-sm font-bold text-white">
-            {project.name.charAt(0).toUpperCase()}
+            {project.title.charAt(0).toUpperCase()}
           </div>
 
           <div className="min-w-0">
             <h3 className="truncate text-base font-bold text-acs-purple">
-              {project.name}
+              {project.title}
             </h3>
 
             <p className="mt-0.5 truncate text-xs text-acs-text-muted">
