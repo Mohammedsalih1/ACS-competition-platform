@@ -71,6 +71,7 @@ export default function SubmitPage() {
         body: JSON.stringify({
           title: data.title,
           description: data.description || '',
+          liveUrl: data.liveUrl,
         }),
       });
 
