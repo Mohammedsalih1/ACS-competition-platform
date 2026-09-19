@@ -3,7 +3,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { LayoutDashboard, LogOut, Upload } from 'lucide-react';
+import { LayoutDashboard, LogOut, Upload, FileSearch } from 'lucide-react';
 import acsLogo from '../../assets/acs-logo.png';
 
 export default function Sidebar() {
@@ -40,6 +40,18 @@ export default function Sidebar() {
         >
           <Upload className="h-4 w-4" />
           Submit Project
+        </NavLink>
+        <NavLink
+          to="/dashboard/submission"
+          className={({ isActive }) =>
+            `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors duration-150
+             ${isActive
+               ? 'bg-white/15 text-white border-l-2 border-accent'
+               : 'text-white/70 hover:bg-white/10 hover:text-white'}`
+          }
+        >
+          <FileSearch className="h-4 w-4" />
+          My Submission
         </NavLink>
       </nav>
 

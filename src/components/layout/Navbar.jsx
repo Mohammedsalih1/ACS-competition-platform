@@ -2,7 +2,11 @@ import { useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
-const titles = { '/dashboard': 'Dashboard', '/submit': 'Submit Project' };
+const titles = {
+  '/dashboard': 'Dashboard',
+  '/dashboard/submit': 'Submit Project',
+  '/dashboard/submission': 'My Submission',
+};
 
 export default function Navbar() {
   const { user } = useAuth();
