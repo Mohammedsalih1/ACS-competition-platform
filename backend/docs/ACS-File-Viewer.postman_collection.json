@@ -1,0 +1,261 @@
+{
+  "info": {
+    "name": "ACS - File & Code Viewer APIs",
+    "description": "تجربة File & Code Viewer APIs للمنصة.\n\n**طريقة الاستخدام:**\n1. شغّل الطلبات بالترتيب من مجلد Setup أولاً\n2. ثم جرب أي طلب من مجلد File Viewer APIs\n\n**المتغيرات تتعبأ تلقائياً:**\n- `contestantToken` → من Login Contestant\n- `judgeToken` → من Login Judge\n- `submissionId` → من Create Submission",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000/api/v1" },
+    { "key": "contestantToken", "value": "" },
+    { "key": "judgeToken", "value": "" },
+    { "key": "submissionId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "1️⃣ Setup",
+      "description": "شغّل هالطلبات بالترتيب أول شي عشان تجهز البيئة.",
+      "item": [
+        {
+          "name": "① Login as Contestant",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.success && res.data.accessToken) {",
+                  "    pm.collectionVariables.set('contestantToken', res.data.accessToken);",
+                  "    console.log('✅ Contestant token saved');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"contestant@acs.local\",\n  \"password\": \"Passw0rd!2026\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/login" }
+          }
+        },
+        {
+          "name": "② Create Submission",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.success && res.data.id) {",
+                  "    pm.collectionVariables.set('submissionId', res.data.id);",
+                  "    console.log('✅ Submission ID saved:', res.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{contestantToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"My Test Project\",\n  \"description\": \"Testing file viewer APIs\",\n  \"liveUrl\": \"https://example.com\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/submissions" }
+          }
+        },
+        {
+          "name": "③ Upload ZIP",
+          "description": "**مهم:** اختار ملف ZIP من جهازك في الـ Body.\n\nلو ما عندك ZIP جاهز، سوّي مجلد فيه ملفات (html, css, js, etc.) واضغطه ZIP.",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{contestantToken}}" }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "projectFile",
+                  "type": "file",
+                  "src": "",
+                  "description": "اختار ملف ZIP من جهازك هنا"
+                }
+              ]
+            },
+            "url": { "raw": "{{baseUrl}}/submissions/{{submissionId}}/upload" }
+          }
+        },
+        {
+          "name": "④ Login as Judge",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.success && res.data.accessToken) {",
+                  "    pm.collectionVariables.set('judgeToken', res.data.accessToken);",
+                  "    console.log('✅ Judge token saved');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"judge@acs.local\",\n  \"password\": \"Passw0rd!2026\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/login" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2️⃣ File Viewer APIs",
+      "description": "الـ APIs الجديدة — شغّل Setup أولاً!",
+      "item": [
+        {
+          "name": "Get Project Files (شجرة كاملة)",
+          "description": "يرجع ملخص المشروع + شجرة الملفات الكاملة nested مع language و isViewable لكل ملف.",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{judgeToken}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/files/{{submissionId}}" }
+          }
+        },
+        {
+          "name": "Get Folder Contents (root)",
+          "description": "محتويات الـ root — المجلدات والملفات بالمستوى الأول فقط.",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{judgeToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/files/{{submissionId}}/folder",
+              "query": [
+                { "key": "path", "value": "", "description": "اتركه فاضي للـ root" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Folder Contents (src)",
+          "description": "محتويات مجلد src.",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{judgeToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/files/{{submissionId}}/folder?path=src",
+              "query": [
+                { "key": "path", "value": "src" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get File Info",
+          "description": "معلومات ملف واحد — الحجم، النوع، لغة الـ highlighting، هل يدعم العرض.\n\n**غيّر الـ path حسب ملفاتك.**",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{judgeToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/files/{{submissionId}}/info?path=src/App.jsx",
+              "query": [
+                { "key": "path", "value": "src/App.jsx", "description": "غيّر المسار حسب ملفات مشروعك" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get File Content ⭐",
+          "description": "**الأهم!** يرجع محتوى الملف النصي للعرض في الـ Code Viewer.\n\n**غيّر الـ path حسب ملفاتك.**",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{judgeToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/files/{{submissionId}}/content?path=src/App.jsx",
+              "query": [
+                { "key": "path", "value": "src/App.jsx", "description": "غيّر المسار حسب ملفات مشروعك" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3️⃣ Error Cases",
+      "description": "اختبار حالات الخطأ — كلها لازم ترجع error مناسب.",
+      "item": [
+        {
+          "name": "❌ File Not Found",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{judgeToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/files/{{submissionId}}/content?path=nonexistent.js"
+            }
+          }
+        },
+        {
+          "name": "❌ Path Traversal Attack",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{judgeToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/files/{{submissionId}}/content?path=../../../etc/passwd"
+            }
+          }
+        },
+        {
+          "name": "❌ Folder Not Found",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{judgeToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/files/{{submissionId}}/folder?path=nonexistent-folder"
+            }
+          }
+        },
+        {
+          "name": "❌ No Auth Token",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/files/{{submissionId}}"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

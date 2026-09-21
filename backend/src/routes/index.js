@@ -14,6 +14,7 @@ import mongoose from 'mongoose';
 import authRoutes from '../modules/auth/auth.routes.js';
 import userRoutes from '../modules/users/user.routes.js';
 import submissionRoutes from '../modules/submissions/submission.routes.js';
+import fileRoutes from '../modules/files/file.routes.js';
 import { sendSuccess } from '../utils/apiResponse.js';
 const router = Router();
 /** Liveness + database readiness. Unauthenticated on purpose. */
@@ -30,8 +31,6 @@ router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
 router.use('/submissions', submissionRoutes);
 
-
-// Next up:
-// router.use('/files', fileRoutes);
+router.use('/files', fileRoutes);
 
 export default router;
