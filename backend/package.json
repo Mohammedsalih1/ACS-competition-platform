@@ -12,6 +12,8 @@
     "dev": "nodemon src/server.js",
     "seed": "node src/scripts/seed.js",
     "seed:reset": "node src/scripts/seed.js --reset",
+    "seed:criteria": "node src/scripts/seedCriteria.js",
+    "seed:criteria:reset": "node src/scripts/seedCriteria.js --reset",
     "smoke": "node tests/smoke.js",
     "check": "node tests/wiring.check.js",
     "smoke:uploads": "node tests/uploads.smoke.js",
