@@ -15,6 +15,7 @@ import authRoutes from '../modules/auth/auth.routes.js';
 import userRoutes from '../modules/users/user.routes.js';
 import submissionRoutes from '../modules/submissions/submission.routes.js';
 import judgingRoutes from '../modules/judging/judging.routes.js';
+import resultsRoutes from '../modules/results/results.routes.js';
 import { sendSuccess } from '../utils/apiResponse.js';
 const router = Router();
 /** Liveness + database readiness. Unauthenticated on purpose. */
@@ -31,6 +32,7 @@ router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
 router.use('/submissions', submissionRoutes);
 router.use('/judging', judgingRoutes);
+router.use('/results', resultsRoutes);
 
 
 // Next up:
