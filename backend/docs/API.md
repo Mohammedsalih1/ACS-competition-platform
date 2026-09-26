@@ -294,6 +294,69 @@ attachment. `404 NOT_FOUND` when nothing has been uploaded yet. Absolute
 filesystem paths are never returned in any response.
 
 
+### Judging — criteria, assignments, evaluations
+
+| Method | Path | Role | Notes |
+| --- | --- | --- | --- |
+| GET | `/judging/criteria` | admin, judge | `{ criteria }` (judges see active ones only) |
+| POST / PATCH / DELETE | `/judging/criteria[/:criterionId]` | admin | Manage criteria |
+| GET | `/judging/assignments` | admin | All assignments |
+| GET | `/judging/assignments/mine` | judge | The caller's assigned projects |
+| POST | `/judging/assignments` | admin | `{ judgeId, submissionId }` |
+| POST | `/judging/assignments/bulk` | admin | `{ judgeId, submissionIds }` |
+| DELETE | `/judging/assignments` | admin | `{ judgeId, submissionId }` |
+| POST | `/judging/evaluations/:submissionId` | judge | `{ scores: [{ criterionId, score, note? }], generalNote? }` → `201`; one evaluation per judge per project (`409 ALREADY_EVALUATED`) |
+| GET | `/judging/evaluations/:submissionId/mine` | judge | The caller's own evaluation |
+| GET | `/judging/evaluations/:submissionId` | admin | All evaluations + per-criterion averages |
+
+Scores are whole numbers, `0..maxScore` per criterion. Every non-bonus criterion
+is required; the bonus criterion is optional. Judging errors:
+`JUDGE_NOT_ASSIGNED` (403), `ALREADY_EVALUATED` (409), `SCORE_OUT_OF_RANGE` and
+`MISSING_CRITERION_SCORE` (400).
+
+### Results — scoring, ranking, statistics
+
+**Scoring rules.** An evaluation's total is the sum of its criterion scores
+(bonus included; with the official criteria the maximum is 85). A project's
+`averageScore` is the mean of its judges' totals and `totalScore` their sum.
+Ranking uses `averageScore`, so projects judged by a different number of judges
+stay comparable. A project is ranked once it has **at least one** evaluation;
+`isComplete: false` means some assigned judges have not finished
+(`evaluatedCount` / `assignedCount`). Ties share a rank (`1, 1, 3`), ordered by
+earliest `submittedAt`. Scores are rounded to 2 decimals.
+
+**Visibility.** Admins always see results. Contestants only see results after an
+admin publishes them (`403 RESULTS_NOT_PUBLISHED` before that), and only their
+own project's detail; judges have no results access.
+
+| Method | Path | Role | Success |
+| --- | --- | --- | --- |
+| GET | `/results/status` | any | `{ published, publishedAt }` |
+| PATCH | `/results/publish` | admin | body `{ published: boolean }` → `{ published, publishedAt }` |
+| GET | `/results/leaderboard` | admin, contestant* | `page?`, `limit?` (max 100) → `{ results, maxScore }` + `meta` |
+| GET | `/results/projects/:submissionId` | admin, contestant (owner)* | `{ result }` |
+| GET | `/results/mine` | contestant* | `{ results }` — the caller's own projects |
+| GET | `/results/stats` | admin | `{ stats }` |
+
+\* contestants only after publication.
+
+Leaderboard row (admin): `rank, submissionId, title, contestant{id,name,email},
+averageScore, totalScore, highestScore, lowestScore, evaluatedCount,
+assignedCount, isComplete, percentage`. Contestants receive only
+`rank, submissionId, title, contestant{id,name}, averageScore, percentage`.
+
+Project result: the fields above plus `totalParticipants`, `maxScore` and
+`criteria: [{ key, name, nameAr, isBonus, maxScore, average }]`. Admins
+additionally get `evaluations: [{ judge, totalScore, generalNote, scores }]`;
+judge identities and notes are never sent to contestants. A project with no
+evaluations returns `rank`, `averageScore` and `percentage` as `null`.
+
+Stats (`/results/stats`): `published`, `users{contestants,judges}`,
+`submissions{total,byStatus,unassigned,evaluated,pendingEvaluation,fullyEvaluated}`,
+`evaluations{total,assignments,progressPercent}`,
+`scores{maxScore,average,highest,lowest,topProject}` and
+`criteriaAverages[{key,name,maxScore,average}]`.
+
 ### Health
 
 `GET /api/v1/health` — public. Returns uptime and database connection state.
@@ -339,6 +402,8 @@ into an endpoint that never meant to accept it.
 | `FORBIDDEN` | Not allowed (e.g. reading another user's record) |
 | `INSUFFICIENT_ROLE` | Wrong role. `details.requiredRoles` lists what is needed |
 | `ACCOUNT_DISABLED` | The account was disabled by an admin |
+| `RESULTS_NOT_PUBLISHED` | Results are not published yet (contestants only) |
+| `JUDGE_NOT_ASSIGNED` | The judge is not assigned to this project |
 
 **Never refresh on a 403.** The token is fine; the permission is not. Retrying
 just loops.
