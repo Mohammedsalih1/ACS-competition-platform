@@ -59,6 +59,9 @@ export const ERROR_CODES = Object.freeze({
   SCORE_OUT_OF_RANGE: 'SCORE_OUT_OF_RANGE',
   MISSING_CRITERION_SCORE: 'MISSING_CRITERION_SCORE',
 
+  // --- Results ---
+  RESULTS_NOT_PUBLISHED: 'RESULTS_NOT_PUBLISHED',
+
   // --- ZIP extraction / project processing --------------------------------
   EXTRACTION_FAILED: 'EXTRACTION_FAILED',
   PATH_TRAVERSAL_DETECTED: 'PATH_TRAVERSAL_DETECTED',
