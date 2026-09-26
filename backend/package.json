@@ -17,7 +17,8 @@
     "smoke": "node tests/smoke.js",
     "check": "node tests/wiring.check.js",
     "smoke:uploads": "node tests/uploads.smoke.js",
-    "test": "npm run check && npm run smoke && npm run smoke:uploads"
+    "smoke:results": "node tests/results.smoke.js",
+    "test": "npm run check && npm run smoke && npm run smoke:uploads && npm run smoke:results"
   },
   "keywords": [
     "acs",
