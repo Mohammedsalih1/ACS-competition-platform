@@ -1,0 +1,8 @@
+{
+  "ignore": [
+    "storage/*",
+    "tests/fixtures/*",
+    ".git/*",
+    "node_modules/*"
+  ]
+}

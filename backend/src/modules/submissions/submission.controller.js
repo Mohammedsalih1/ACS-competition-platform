@@ -139,4 +139,21 @@ export const getFileContent = async (req, res) => {
     req.user,
   );
   return sendSuccess(res, result);
+};
+
+// DELETE /:submissionId/files — remove all uploaded files, revert to draft
+export const deleteSubmissionFiles = async (req, res) => {
+  const { submissionId } = req.params;
+  const submission = await submissionService.deleteSubmissionFiles(
+    submissionId,
+    req.user.id,
+  );
+  return sendSuccess(res, { submission });
+};
+
+// DELETE /:submissionId — cascade delete submission + all files (admin only)
+export const deleteSubmissionRecord = async (req, res) => {
+  const { submissionId } = req.params;
+  await submissionService.deleteSubmission(submissionId);
+  return sendSuccess(res, { message: 'Submission deleted' });
 };

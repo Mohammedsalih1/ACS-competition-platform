@@ -139,4 +139,20 @@ router.get(
   asyncHandler(controller.getFileContent),
 );
 
+// DELETE /:submissionId/files — remove all uploaded files, revert to draft
+router.delete(
+  "/:submissionId/files",
+  authorize(ROLES.CONTESTANT),
+  validate({ params: submissionIdParamSchema }),
+  asyncHandler(controller.deleteSubmissionFiles),
+);
+
+// DELETE /:submissionId — cascade delete submission + all associated data
+router.delete(
+  "/:submissionId",
+  authorize(ROLES.ADMIN),
+  validate({ params: submissionIdParamSchema }),
+  asyncHandler(controller.deleteSubmissionRecord),
+);
+
 export default router;

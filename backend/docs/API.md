@@ -254,6 +254,8 @@ change status and download submissions for review.
 | PATCH | `/api/v1/submissions/:submissionId/status` | `{ status }` | `200 { submission }` (judge/admin) |
 | POST | `/api/v1/submissions/:submissionId/upload` | `projectFile` (multipart ZIP) | `201 { fileId, originalFileName }` |
 | GET | `/api/v1/submissions/:submissionId/download` | — | `200` ZIP stream |
+| DELETE | `/api/v1/submissions/:submissionId/files` | — | `200 { submission }` (owner, reverts to draft) |
+| DELETE | `/api/v1/submissions/:submissionId` | — | `200 { message }` (admin cascade delete) |
 
 **Creating.** A submission starts as `draft` with `submittedAt: null`. `title` is
 required (1–200 chars), and `liveUrl` is required and must be a valid URL;
@@ -293,6 +295,18 @@ never leaves anything behind in `storage/temp`.
 attachment. `404 NOT_FOUND` when nothing has been uploaded yet. Absolute
 filesystem paths are never returned in any response.
 
+### File & Code Viewer
+
+All file viewer endpoints require an access token. Contestants can view their own files, while judges and admins can view files for any submission. Sensitive files (`.env`, `.git`, etc.) are completely hidden and blocked from access. Rate limited to 60 requests/minute.
+
+| Method | Path | Query | Success |
+| --- | --- | --- | --- |
+| GET | `/api/v1/files/:submissionId` | — | `200 { submissionId, summary, tree }` (full project tree) |
+| GET | `/api/v1/files/:submissionId/folder` | `path?` | `200 { path, entries }` (immediate children) |
+| GET | `/api/v1/files/:submissionId/info` | `path` | `200 { path, size, language, isViewable, ... }` |
+| GET | `/api/v1/files/:submissionId/content` | `path` | `200 { metadata, content }` (source code) |
+
+Path traversal attacks (`../`, `%00`) and requests for blocked files return `400` or `403`. Binary files and files over 1MB return `isViewable: false` and `content: null`.
 
 ### Judging — criteria, assignments, evaluations
 

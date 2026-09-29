@@ -10,6 +10,7 @@ import { connectDatabase, disconnectDatabase } from './config/database.js';
 import { initStorage } from './config/storage.config.js';
 import { env } from './config/env.js';
 import { logger } from './utils/logger.js';
+import { cleanupTempFiles } from './utils/fileCleanup.js';
 
 const start = async () => {
   try {
@@ -27,11 +28,29 @@ const start = async () => {
     process.exit(1);
   }
 
+  // Clean up any stale temp files from previous crashes
+  try {
+    const { deleted } = await cleanupTempFiles();
+    if (deleted > 0) logger.info(`Cleaned up ${deleted} stale temp files`);
+  } catch (error) {
+    logger.warn('Temp cleanup on startup failed (non-fatal):', error.message);
+  }
+
   const app = createApp();
   const server = app.listen(env.PORT, () => {
     logger.info(`ACS API listening on http://localhost:${env.PORT}${env.API_PREFIX}`);
     logger.info(`Environment: ${env.NODE_ENV}`);
   });
+
+  // Periodic temp file cleanup (every 30 minutes)
+  const cleanupInterval = setInterval(async () => {
+    try {
+      await cleanupTempFiles();
+    } catch (error) {
+      logger.warn('Periodic temp cleanup failed:', error.message);
+    }
+  }, 30 * 60 * 1000);
+  cleanupInterval.unref();
 
   const shutdown = async (signal) => {
     logger.info(`${signal} received, shutting down gracefully...`);

@@ -5,6 +5,7 @@ import ApiError from "../../utils/ApiError.js";
 import { ERROR_CODES } from "../../constants/errorCodes.js";
 import Submission, { SUBMISSION_STATUS } from "../../models/submission.model.js";
 import File, { UPLOAD_STATUS } from "../../models/file.model.js";
+import ProjectStructure from "../../models/projectStructure.model.js";
 import {
   SUBMISSIONS_DIR,
   ZIP_MAGIC_BYTES,
@@ -15,6 +16,12 @@ import {
   getFileContent as fetchFileContent,
   buildNestedTree,
 } from "./extraction.service.js";
+import {
+  cleanupSubmissionFiles,
+  removeFileFromDisk,
+  removeExtractedDir,
+} from "../../utils/fileCleanup.js";
+import { logger } from "../../utils/logger.js";
 
 // ── Helpers ─────────────────────────────────────────────────────────
 
@@ -115,6 +122,42 @@ function storageError(err) {
   return ApiError.internal("Failed to store file");
 }
 
+// ── Re-upload cleanup ───────────────────────────────────────────────
+
+/** Mark previous active files as REPLACED and clean up disk artifacts. */
+async function replacePreviousFiles(submission) {
+  const previousFiles = await File.find({
+    submission: submission._id,
+    status: { $in: [UPLOAD_STATUS.UPLOADED, UPLOAD_STATUS.EXTRACTED] },
+  }).select("+storagePath +extractedPath");
+
+  for (const oldFile of previousFiles) {
+    if (oldFile.storagePath) {
+      await removeFileFromDisk(oldFile.storagePath).catch((err) =>
+        logger.warn(`[re-upload] Failed to remove old ZIP: ${err.message}`),
+      );
+    }
+
+    if (oldFile.extractedPath) {
+      await removeExtractedDir(oldFile.extractedPath).catch((err) =>
+        logger.warn(`[re-upload] Failed to remove old extraction: ${err.message}`),
+      );
+    }
+
+    oldFile.status = UPLOAD_STATUS.REPLACED;
+    await oldFile.save();
+    logger.info(`[re-upload] Marked file ${oldFile._id} as replaced`);
+  }
+
+  // Remove previous File IDs from the submission's files array
+  if (previousFiles.length > 0) {
+    const replacedIds = new Set(previousFiles.map((f) => String(f._id)));
+    submission.files = submission.files.filter(
+      (fId) => !replacedIds.has(String(fId)),
+    );
+  }
+}
+
 // ── Public API ──────────────────────────────────────────────────────
 
 // Ownership check — throws if the submission doesn't exist or isn't the caller's.
@@ -139,6 +182,9 @@ export const uploadZipForSubmission = async ({
   originalFileName,
   mimeType,
 }) => {
+  // Clean up previous uploads on re-upload
+  await replacePreviousFiles(submission);
+
   const file = await File.create({
     submission: submission._id,
     status: UPLOAD_STATUS.PENDING,
@@ -249,6 +295,45 @@ export const getLatestUploadedFile = async (submissionId) => {
     throw ApiError.notFound("No file uploaded for this submission yet");
   }
   return file;
+};
+
+// ── Delete submission files ─────────────────────────────────────────
+
+/** Delete all uploaded files for a submission and revert to draft. */
+export const deleteSubmissionFiles = async (submissionId, contestantId) => {
+  const submission = await verifyOwnership(submissionId, contestantId);
+
+  // Mark all files as replaced
+  await replacePreviousFiles(submission);
+
+  // Remove project structure
+  await ProjectStructure.deleteMany({ submission: submission._id });
+
+  // Clean up entire submission directory on disk
+  await cleanupSubmissionFiles(submissionId);
+
+  // Revert submission to draft
+  submission.files = [];
+  submission.status = SUBMISSION_STATUS.DRAFT;
+  submission.submittedAt = null;
+  await submission.save();
+
+  logger.info(`[files] Deleted all files for submission ${submissionId}`);
+
+  return getSubmissionById(submissionId);
+};
+
+/** Cascade-delete a submission and all associated data (admin). */
+export const deleteSubmission = async (submissionId) => {
+  // Clean up files on disk
+  await cleanupSubmissionFiles(submissionId);
+
+  // Clean up DB records
+  await File.deleteMany({ submission: submissionId });
+  await ProjectStructure.deleteMany({ submission: submissionId });
+  await Submission.findByIdAndDelete(submissionId);
+
+  logger.info(`[submissions] Cascade-deleted submission ${submissionId}`);
 };
 
 // ── Project structure helpers (delegate to extraction service) ──────

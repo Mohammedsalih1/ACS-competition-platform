@@ -5,6 +5,7 @@ export const UPLOAD_STATUS = Object.freeze({
   UPLOADED: 'uploaded',
   EXTRACTED: 'extracted',
   FAILED: 'failed',
+  REPLACED: 'replaced',
 });
 
 const fileSchema = new mongoose.Schema(

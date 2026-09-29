@@ -36,4 +36,13 @@ export const loginLimiter = rateLimit({
   ),
 });
 
-export default { globalLimiter, loginLimiter };
+// File / Code Viewer endpoints — tighter limit (60 req/min/IP)
+export const fileLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: envelope('Too many file requests. Please slow down.'),
+});
+
+export default { globalLimiter, loginLimiter, fileLimiter };
