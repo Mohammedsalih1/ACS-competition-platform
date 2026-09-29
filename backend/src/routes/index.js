@@ -16,11 +16,15 @@ import userRoutes from '../modules/users/user.routes.js';
 import submissionRoutes from '../modules/submissions/submission.routes.js';
 import judgingRoutes from '../modules/judging/judging.routes.js';
 import resultsRoutes from '../modules/results/results.routes.js';
+import fileRoutes from '../modules/files/file.routes.js';
 import { sendSuccess } from '../utils/apiResponse.js';
+
 const router = Router();
+
 /** Liveness + database readiness. Unauthenticated on purpose. */
 router.get('/health', (req, res) => {
   const states = ['disconnected', 'connected', 'connecting', 'disconnecting'];
+
   return sendSuccess(res, {
     status: 'ok',
     uptime: Math.floor(process.uptime()),
@@ -28,14 +32,12 @@ router.get('/health', (req, res) => {
     timestamp: new Date().toISOString(),
   });
 });
+
 router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
 router.use('/submissions', submissionRoutes);
 router.use('/judging', judgingRoutes);
 router.use('/results', resultsRoutes);
-
-
-// Next up:
-// router.use('/files', fileRoutes);
+router.use('/files', fileRoutes);
 
 export default router;
