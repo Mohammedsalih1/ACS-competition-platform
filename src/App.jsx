@@ -5,6 +5,7 @@ import RoleRoute from './components/common/RoleRoute'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import SubmitPage from './pages/SubmitPage'
+import MySubmissionPage from './pages/MySubmissionPage'
 import Forbidden from './pages/Forbidden'
 import JudgeRoutes from './routes/JudgeRoutes'
 import AppLayout from './components/layout/AppLayout'
@@ -28,6 +29,7 @@ function App() {
           >
             <Route index element={<Dashboard />} />
             <Route path="submit" element={<SubmitPage />} />
+            <Route path="submission" element={<MySubmissionPage />} />
           </Route>
           <Route
             path="/judge/*"
