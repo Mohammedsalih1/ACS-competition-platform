@@ -176,5 +176,11 @@ To add a module, see the comment block at the top of `src/routes/index.js`.
   `COOKIE_SECURE=false` in production — refresh cookies must not cross plain HTTP.
 - A cross-site frontend needs `COOKIE_SAMESITE=none` **and** `COOKIE_SECURE=true`.
 - Set `CORS_ORIGINS` to the deployed frontend origin(s).
+- Configure the frontend build with `VITE_API_URL=https://<api-host>/api/v1`.
+- Use `/health` for liveness and `/api/v1/health` for readiness; readiness
+  returns HTTP 503 when MongoDB is unavailable.
+- Uploads are stored on local disk under `storage/` by default. On hosts with
+  ephemeral filesystems, attach persistent storage and set `STORAGE_PATH` to
+  its mount path, or move uploads to durable object storage.
 - Rate limits are stored in process memory; behind more than one instance,
   switch `express-rate-limit` to a Redis store.
