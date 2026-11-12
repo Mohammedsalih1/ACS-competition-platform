@@ -1,0 +1,208 @@
+{
+  "submissionId": "6aecc06d6cbd1150c7b2ea66",
+  "findings": [
+    {
+      "account": "admin",
+      "label": "dashboard",
+      "route": "/admin",
+      "viewport": "desktop",
+      "screenshot": "C:\\Users\\lenovo\\Desktop\\ACS\\CODES-PROJECTS\\judgement\\ACS-competition-platform\\.audit-artifacts\\admin-dashboard-desktop.png",
+      "title": "Administration Dashboard · ACS Competition",
+      "bodyWidth": 1440,
+      "viewportWidth": 1440,
+      "bodyHeight": 1000,
+      "emptyButtons": 0,
+      "clipped": [],
+      "horizontalOverflow": false
+    },
+    {
+      "account": "admin",
+      "label": "project-details",
+      "route": "/admin/projects/6aecc06d6cbd1150c7b2ea66",
+      "viewport": "desktop",
+      "screenshot": "C:\\Users\\lenovo\\Desktop\\ACS\\CODES-PROJECTS\\judgement\\ACS-competition-platform\\.audit-artifacts\\admin-project-details-desktop.png",
+      "title": "Project Administration · ACS Competition",
+      "bodyWidth": 1440,
+      "viewportWidth": 1440,
+      "bodyHeight": 1000,
+      "emptyButtons": 0,
+      "clipped": [],
+      "horizontalOverflow": false
+    },
+    {
+      "account": "admin",
+      "label": "settings",
+      "route": "/admin/settings",
+      "viewport": "desktop",
+      "screenshot": "C:\\Users\\lenovo\\Desktop\\ACS\\CODES-PROJECTS\\judgement\\ACS-competition-platform\\.audit-artifacts\\admin-settings-desktop.png",
+      "title": "Administration Dashboard · ACS Competition",
+      "bodyWidth": 1440,
+      "viewportWidth": 1440,
+      "bodyHeight": 1000,
+      "emptyButtons": 0,
+      "clipped": [],
+      "horizontalOverflow": false
+    },
+    {
+      "account": "admin",
+      "label": "dashboard",
+      "route": "/admin",
+      "viewport": "mobile",
+      "screenshot": "C:\\Users\\lenovo\\Desktop\\ACS\\CODES-PROJECTS\\judgement\\ACS-competition-platform\\.audit-artifacts\\admin-dashboard-mobile.png",
+      "title": "Administration Dashboard · ACS Competition",
+      "bodyWidth": 390,
+      "viewportWidth": 390,
+      "bodyHeight": 1891,
+      "emptyButtons": 0,
+      "clipped": [],
+      "horizontalOverflow": false
+    },
+    {
+      "account": "judge",
+      "label": "dashboard",
+      "route": "/judge",
+      "viewport": "desktop",
+      "screenshot": "C:\\Users\\lenovo\\Desktop\\ACS\\CODES-PROJECTS\\judgement\\ACS-competition-platform\\.audit-artifacts\\judge-dashboard-desktop.png",
+      "title": "Judge Dashboard · ACS Competition",
+      "bodyWidth": 1440,
+      "viewportWidth": 1440,
+      "bodyHeight": 1000,
+      "emptyButtons": 0,
+      "clipped": [],
+      "horizontalOverflow": false
+    },
+    {
+      "account": "judge",
+      "label": "projects",
+      "route": "/judge/projects",
+      "viewport": "desktop",
+      "screenshot": "C:\\Users\\lenovo\\Desktop\\ACS\\CODES-PROJECTS\\judgement\\ACS-competition-platform\\.audit-artifacts\\judge-projects-desktop.png",
+      "title": "Open Projects · ACS Competition",
+      "bodyWidth": 1440,
+      "viewportWidth": 1440,
+      "bodyHeight": 1018,
+      "emptyButtons": 0,
+      "clipped": [],
+      "horizontalOverflow": false
+    },
+    {
+      "account": "judge",
+      "label": "project-details",
+      "route": "/judge/projects/6aecc06d6cbd1150c7b2ea66",
+      "viewport": "desktop",
+      "screenshot": "C:\\Users\\lenovo\\Desktop\\ACS\\CODES-PROJECTS\\judgement\\ACS-competition-platform\\.audit-artifacts\\judge-project-details-desktop.png",
+      "title": "Open Projects · ACS Competition",
+      "bodyWidth": 1440,
+      "viewportWidth": 1440,
+      "bodyHeight": 1000,
+      "emptyButtons": 0,
+      "clipped": [],
+      "horizontalOverflow": false
+    },
+    {
+      "account": "judge",
+      "label": "evaluation",
+      "route": "/judge/projects/6aecc06d6cbd1150c7b2ea66/evaluate",
+      "viewport": "desktop",
+      "screenshot": "C:\\Users\\lenovo\\Desktop\\ACS\\CODES-PROJECTS\\judgement\\ACS-competition-platform\\.audit-artifacts\\judge-evaluation-desktop.png",
+      "title": "Project Evaluation · ACS Competition",
+      "bodyWidth": 1440,
+      "viewportWidth": 1440,
+      "bodyHeight": 4848,
+      "emptyButtons": 0,
+      "clipped": [],
+      "horizontalOverflow": false
+    },
+    {
+      "account": "judge",
+      "label": "evaluation",
+      "route": "/judge/projects/6aecc06d6cbd1150c7b2ea66/evaluate",
+      "viewport": "tablet",
+      "screenshot": "C:\\Users\\lenovo\\Desktop\\ACS\\CODES-PROJECTS\\judgement\\ACS-competition-platform\\.audit-artifacts\\judge-evaluation-tablet.png",
+      "title": "Project Evaluation · ACS Competition",
+      "bodyWidth": 1024,
+      "viewportWidth": 1024,
+      "bodyHeight": 5405,
+      "emptyButtons": 0,
+      "clipped": [],
+      "horizontalOverflow": false
+    },
+    {
+      "account": "judge",
+      "label": "evaluation",
+      "route": "/judge/projects/6aecc06d6cbd1150c7b2ea66/evaluate",
+      "viewport": "mobile",
+      "screenshot": "C:\\Users\\lenovo\\Desktop\\ACS\\CODES-PROJECTS\\judgement\\ACS-competition-platform\\.audit-artifacts\\judge-evaluation-mobile.png",
+      "title": "Project Evaluation · ACS Competition",
+      "bodyWidth": 390,
+      "viewportWidth": 390,
+      "bodyHeight": 6393,
+      "emptyButtons": 0,
+      "clipped": [],
+      "horizontalOverflow": false
+    },
+    {
+      "account": "judge",
+      "label": "workspace",
+      "route": "/judge/projects/6aecc06d6cbd1150c7b2ea66/workspace",
+      "viewport": "desktop",
+      "screenshot": "C:\\Users\\lenovo\\Desktop\\ACS\\CODES-PROJECTS\\judgement\\ACS-competition-platform\\.audit-artifacts\\judge-workspace-desktop.png",
+      "title": "Code Review Workspace · ACS Competition",
+      "bodyWidth": 1440,
+      "viewportWidth": 1440,
+      "bodyHeight": 1000,
+      "emptyButtons": 0,
+      "clipped": [],
+      "horizontalOverflow": false
+    },
+    {
+      "account": "judge",
+      "label": "workspace",
+      "route": "/judge/projects/6aecc06d6cbd1150c7b2ea66/workspace",
+      "viewport": "mobile",
+      "screenshot": "C:\\Users\\lenovo\\Desktop\\ACS\\CODES-PROJECTS\\judgement\\ACS-competition-platform\\.audit-artifacts\\judge-workspace-mobile.png",
+      "title": "Code Review Workspace · ACS Competition",
+      "bodyWidth": 390,
+      "viewportWidth": 390,
+      "bodyHeight": 844,
+      "emptyButtons": 0,
+      "clipped": [],
+      "horizontalOverflow": false
+    },
+    {
+      "account": "judge",
+      "label": "sidebar-hover",
+      "route": "/judge",
+      "viewport": "desktop",
+      "screenshot": "C:\\Users\\lenovo\\Desktop\\ACS\\CODES-PROJECTS\\judgement\\ACS-competition-platform\\.audit-artifacts\\judge-sidebar-hover-desktop.png",
+      "title": "Judge Dashboard · ACS Competition",
+      "bodyWidth": 1440,
+      "viewportWidth": 1440,
+      "bodyHeight": 1000,
+      "emptyButtons": 0,
+      "clipped": [],
+      "horizontalOverflow": false
+    }
+  ],
+  "workflow": [
+    "Admin configured required evaluations through the UI",
+    "Judge opened extracted source through the UI workspace",
+    "Judge saved an eight-criterion draft; completion remained zero",
+    "Judge submitted and revisited a locked final evaluation",
+    "Administrator approved the completed aggregate through the UI"
+  ],
+  "consoleErrors": [
+    {
+      "account": "admin",
+      "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+    },
+    {
+      "account": "judge",
+      "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+    },
+    {
+      "account": "admin",
+      "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+    }
+  ]
+}

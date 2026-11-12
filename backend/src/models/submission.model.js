@@ -28,6 +28,7 @@ const submissionSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
+    stageParticipation: { type: mongoose.Schema.Types.ObjectId, ref: 'ProjectStageParticipation', default: null, index: true },
     status: {
       type: String,
       enum: Object.values(SUBMISSION_STATUS),
@@ -36,6 +37,15 @@ const submissionSchema = new mongoose.Schema(
     },
     submittedAt: { type: Date, default: null },
     files: [{ type: mongoose.Schema.Types.ObjectId, ref: 'File' }],
+    completedEvaluationCount: { type: Number, min: 0, default: 0 },
+    reviewState: {
+      type: String,
+      enum: ['not_evaluated', 'in_progress', 'requirements_met', 'approved', 'published'],
+      default: 'not_evaluated',
+      index: true,
+    },
+    approvedAt: { type: Date, default: null },
+    approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   },
   {
     timestamps: true,
@@ -49,6 +59,11 @@ const submissionSchema = new mongoose.Schema(
     },
   },
 );
+
+// Supports the administrative directory and contestant dashboard without
+// scanning the full submissions collection.
+submissionSchema.index({ status: 1, submittedAt: -1 });
+submissionSchema.index({ contestant: 1, createdAt: -1 });
 
 export const Submission = mongoose.model('Submission', submissionSchema);
 export default Submission;

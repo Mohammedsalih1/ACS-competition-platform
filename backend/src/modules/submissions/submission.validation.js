@@ -7,13 +7,17 @@
 import { z } from 'zod';
 import { objectIdSchema } from '../users/user.validation.js';
 
-const liveUrlSchema = z.string().trim().url('Live URL must be a valid URL').max(2048);
+const liveUrlSchema = z.union([
+    z.string().trim().url('Live URL must be a valid URL').max(2048),
+    z.literal(''),
+]);
 
 export const createSubmissionSchema = z
     .object({
         title: z.string().trim().min(1, 'Title is required').max(200),
         description: z.string().trim().max(5000).optional().default(''),
-        liveUrl: liveUrlSchema,
+        // Retained for legacy/API compatibility, but no longer required.
+        liveUrl: liveUrlSchema.optional().default(''),
     })
     .strict();
 
@@ -36,7 +40,14 @@ export const listSubmissionsQuerySchema = z.object({
     page: z.coerce.number().int().positive().default(1),
     limit: z.coerce.number().int().positive().max(100).default(20),
     status: z.enum(['draft', 'submitted', 'under_review', 'scored']).optional(),
-    sort: z.enum(['createdAt', '-createdAt', 'updatedAt', '-updatedAt']).default('-createdAt'),
+    search: z.string().trim().min(1).max(200).optional(),
+    contestant: objectIdSchema.optional(),
+    stage: objectIdSchema.optional(),
+    hasAttachment: z.enum(['true', 'false']).transform((value) => value === 'true').optional(),
+    sort: z.enum([
+        'createdAt', '-createdAt', 'updatedAt', '-updatedAt',
+        'submittedAt', '-submittedAt', 'title', '-title',
+    ]).default('-createdAt'),
 });
 
 export const updateSubmissionStatusSchema = z.object({

@@ -1,14 +1,23 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@import "@fontsource-variable/manrope";
+@import "@fontsource/tajawal/400.css";
+@import "@fontsource/tajawal/700.css";
 
 @theme {
   /* ACS Brand */
-  --color-acs-purple: #250944;
-  --color-acs-purple-light: #3a1761;
-  --color-acs-purple-dark: #18052e;
-  --color-acs-orange: #f59c28;
+  --color-acs-purple: #32115d;
+  --color-acs-purple-light: #55238b;
+  --color-acs-purple-dark: #1c0737;
+  --color-acs-orange: #f49a26;
   --color-acs-orange-light: #ffb84d;
   --color-acs-orange-dark: #d98216;
+  --color-acs-background: #f7f5fb;
+  --color-acs-border: hsl(265 20% 88%);
+  --color-acs-text: hsl(265 68% 15%);
+  --color-acs-text-muted: hsl(265 20% 45%);
+  --color-status-info: #2563eb;
+  --color-status-success: #15803d;
 
   /* shadcn semantic tokens (light theme) */
   --color-background: hsl(265 40% 97%);
@@ -33,7 +42,7 @@
 }
 
 :root {
-  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: "Manrope Variable", "Manrope", "Tajawal", system-ui, sans-serif;
   color: var(--color-foreground);
   background: var(--color-background);
   font-synthesis: none;
@@ -67,5 +76,10 @@ body {
   min-height: 100vh;
   background: var(--color-background);
 }
+
+::selection { background: color-mix(in srgb, var(--color-acs-orange) 28%, transparent); }
+:focus-visible { outline-color: var(--color-acs-orange); outline-offset: 3px; }
+[dir="rtl"] { font-family: "Tajawal", "Manrope Variable", sans-serif; }
+code, pre, kbd, samp { font-family: "IBM Plex Mono", "Cascadia Code", Consolas, monospace; }
 
 button, input, textarea, select { font: inherit; }

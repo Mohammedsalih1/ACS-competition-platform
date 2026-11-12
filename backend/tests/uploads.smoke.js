@@ -121,11 +121,11 @@ const login = async (email, password) => {
   return res.body.data.accessToken;
 };
 
-const createSubmission = async (token, title = 'My Project', liveUrl = 'https://demo.acs.test') => {
+const createSubmission = async (token, title = 'My Project', liveUrl) => {
   const res = await json('/submissions', {
     method: 'POST',
     token,
-    body: { title, liveUrl },
+    body: { title, ...(liveUrl ? { liveUrl } : {}) },
   });
   if (!res.body?.data?.id) throw new Error(`could not create submission: ${JSON.stringify(res.body)}`);
   return res.body.data.id;
@@ -196,7 +196,7 @@ let uploadedSubmissionId;
 let uploadedFileId;
 const zipBuffer = makeZip({ 'index.html': '<h1>ACS</h1>', 'src/app.js': 'console.log(1)' });
 {
-  uploadedSubmissionId = await createSubmission(contestantToken, 'Upload Target', 'https://demo.acs.test');
+  uploadedSubmissionId = await createSubmission(contestantToken, 'Upload Target');
 
   const res = await upload(`/submissions/${uploadedSubmissionId}/upload`, { token: contestantToken, buffer: zipBuffer });
   uploadedFileId = res.body?.data?.fileId;
@@ -228,7 +228,7 @@ const zipBuffer = makeZip({ 'index.html': '<h1>ACS</h1>', 'src/app.js': 'console
 
   const details = await json(`/submissions/${uploadedSubmissionId}`, { token: contestantToken });
   check('the owner can read submission details', details.status === 200 && details.body.data.submission.id === uploadedSubmissionId);
-  check('the live URL is persisted', details.body.data.submission.liveUrl === 'https://demo.acs.test');
+  check('a submission without a live URL persists successfully', details.body.data.submission.liveUrl === '');
 
   const updated = await json(`/submissions/${uploadedSubmissionId}`, {
     method: 'PATCH',
@@ -247,7 +247,7 @@ console.log('\nZIP upload - replacing an archive');
   check('the second upload gets its own file id', res.body.data.fileId !== uploadedFileId);
 
   const submission = await Submission.findById(uploadedSubmissionId);
-  check('both revisions are kept on the submission', submission.files.length === 2);
+  check('the submission references only the latest active revision', submission.files.length === 1 && String(submission.files[0]) === String(res.body.data.fileId));
   check('re-uploading does not reset the status', submission.status === SUBMISSION_STATUS.SUBMITTED);
 
   const download = await fetch(`${base}/submissions/${uploadedSubmissionId}/download`, { headers: { Authorization: `Bearer ${contestantToken}` } });
@@ -344,28 +344,34 @@ console.log('\ndownload');
   const malformed = await json('/submissions/nope/download', { token: contestantToken });
   check('a malformed id on download returns 400', malformed.status === 400 && malformed.body.error.code === 'VALIDATION_ERROR');
 
-  const asJudge = await fetch(`${base}/submissions/${uploadedSubmissionId}/download`, { headers: { Authorization: `Bearer ${judgeToken}` } });
-  check('a judge can download a submission for review', asJudge.status === 200);
+  const openJudge = await fetch(`${base}/submissions/${uploadedSubmissionId}/download`, { headers: { Authorization: `Bearer ${judgeToken}` } });
+  check('a judge can download any eligible submission', openJudge.status === 200);
+
+  const unassignedStatus = await json(`/submissions/${uploadedSubmissionId}/status`, { method: 'PATCH', token: judgeToken, body: { status: 'under_review' } });
+  check('a judge cannot directly change submission status', unassignedStatus.status === 403 && unassignedStatus.body.error.code === 'FORBIDDEN');
+
+  const removedAssignments = await json('/judging/assignments', { token: adminToken });
+  check('legacy judge assignment endpoints are removed', removedAssignments.status === 404);
 
   const asAdmin = await fetch(`${base}/submissions/${uploadedSubmissionId}/download`, { headers: { Authorization: `Bearer ${adminToken}` } });
   check('an admin can download a submission', asAdmin.status === 200);
 
   const list = await json('/submissions', { token: judgeToken });
-  check('a judge can list submissions', list.status === 200 && list.body.data.submissions.some((item) => item.id === uploadedSubmissionId));
+  check('a judge lists the shared eligible project queue', list.status === 200 && list.body.data.submissions.some((item) => item.id === uploadedSubmissionId));
 
   const mine = await json('/submissions/mine', { token: contestantToken });
   const contestantOneId = (await User.findOne({ email: 'c1@acs.test' }))._id.toString();
   check('a contestant can list only their own submissions', mine.status === 200 && mine.body.data.submissions.every((item) => item.contestant?.id === contestantOneId));
 
   const judgeDetails = await json(`/submissions/${uploadedSubmissionId}`, { token: judgeToken });
-  check('a judge can read submission details', judgeDetails.status === 200 && judgeDetails.body.data.submission.id === uploadedSubmissionId);
+  check('a judge can read eligible submission details', judgeDetails.status === 200 && judgeDetails.body.data.submission.id === uploadedSubmissionId);
 
   const reviewed = await json(`/submissions/${uploadedSubmissionId}/status`, {
     method: 'PATCH',
     token: judgeToken,
     body: { status: 'under_review' },
   });
-  check('a judge can update submission status', reviewed.status === 200 && reviewed.body.data.submission.status === 'under_review');
+  check('a judge remains unable to mutate submission status', reviewed.status === 403);
 
   const contestantList = await json('/submissions', { token: contestantToken });
   check('a contestant cannot access the global submission list', contestantList.status === 403);

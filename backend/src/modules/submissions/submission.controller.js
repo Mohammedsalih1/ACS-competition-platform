@@ -57,7 +57,7 @@ export const createSubmission = async (req, res) => {
 
 export const listSubmissions = async (req, res) => {
   const { page, limit } = req.query;
-  const { items, total } = await submissionService.listSubmissions(req.query);
+  const { items, total } = await submissionService.listSubmissionsForUser(req.query, req.user);
   return sendSuccess(res, { submissions: items }, {
     meta: buildPaginationMeta({ page, limit, total }),
   });
@@ -92,6 +92,7 @@ export const updateSubmissionStatus = async (req, res) => {
   const submission = await submissionService.updateSubmissionStatus(
     req.params.submissionId,
     req.body.status,
+    req.user,
   );
   return sendSuccess(res, { submission });
 };

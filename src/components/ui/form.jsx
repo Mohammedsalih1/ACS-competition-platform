@@ -53,7 +53,6 @@ const useFormField = () => {
 
 function FormItem({ className, ...props }) {
   const id = React.useId();
-  const fieldContext = React.useContext(FormFieldContext);
 
   return (
     <FormItemContext.Provider value={{ id }}>

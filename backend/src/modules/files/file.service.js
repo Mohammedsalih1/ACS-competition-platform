@@ -101,7 +101,11 @@ function assertNotBlocked(filePath, submissionId) {
 export async function getProjectFiles(submissionId, user) {
   await getSubmissionForViewer(submissionId, user);
   const structure = await loadStructure(submissionId);
-  const nestedTree = buildNestedTree(structure.tree);
+  // Embedded Mongoose documents must be converted before spreading them.
+  // Otherwise private document internals are serialized and public fields such
+  // as name/path end up nested under _doc in the API response.
+  const flatTree = structure.tree.map((entry) => entry.toObject());
+  const nestedTree = buildNestedTree(flatTree);
 
   // Enrich tree nodes + filter blocked files
   const enrichTree = (nodes) =>

@@ -144,6 +144,12 @@ let contestantToken;
   const allowed = await api('/users', { token: adminToken });
   check('admin can list users, with pagination meta', allowed.status === 200 && Array.isArray(allowed.body.data.users) && allowed.body.meta.total === 3);
 
+  const stats = await api('/users/stats', { token: adminToken });
+  check('admin can read real user aggregates', stats.status === 200 && stats.body.data.stats.total === 3 && stats.body.data.stats.byRole.admin === 1);
+
+  const statsDenied = await api('/users/stats', { token: contestantToken });
+  check('user aggregates are admin-only', statsDenied.status === 403 && statsDenied.body.error.code === 'INSUFFICIENT_ROLE');
+
   const self = await api(`/users/${admin._id}`, { token: adminToken });
   check('admin can read a user by id', self.status === 200);
 

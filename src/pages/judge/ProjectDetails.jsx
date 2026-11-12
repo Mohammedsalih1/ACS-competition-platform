@@ -52,7 +52,7 @@ function ProjectDetails() {
           </h1>
 
           <p className="mt-2 text-sm leading-6 text-acs-text-muted">
-            The project you're looking for does not exist
+            The project you&apos;re looking for does not exist
             or is no longer available.
           </p>
 
@@ -114,14 +114,14 @@ function ProjectDetails() {
           {/* Actions */}
           <div className="flex shrink-0 flex-col items-stretch gap-2 sm:items-end">
             <div className="flex flex-wrap gap-3">
-              <a
+              {project.liveUrl && <a
                 href={project.liveUrl}
                 target="_blank"
                 rel="noreferrer"
                 className="inline-flex shrink-0 items-center justify-center rounded-xl bg-acs-orange px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-acs-orange-dark"
               >
                 Open Live Project ↗
-              </a>
+              </a>}
 
               <button
                 type="button"
@@ -214,12 +214,7 @@ function ProjectDetails() {
             </p>
           </div>
 
-          <button
-            type="button"
-            className="shrink-0 rounded-xl bg-white px-6 py-3 text-sm font-bold text-acs-purple transition hover:bg-acs-orange hover:text-white"
-          >
-            Review Project
-          </button>
+          <div className="flex flex-wrap gap-3"><Link to={`/judge/projects/${projectId}/workspace`} className="rounded-xl border border-white/25 px-5 py-3 text-sm font-semibold text-white hover:bg-white/10">Inspect source code</Link><Link to={`/judge/projects/${projectId}/evaluate`} className="rounded-xl bg-acs-orange px-5 py-3 text-sm font-bold text-acs-purple-dark hover:bg-acs-orange-light">Start or continue evaluation</Link></div>
         </div>
       </section>
 

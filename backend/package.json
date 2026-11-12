@@ -14,6 +14,8 @@
     "seed:reset": "node src/scripts/seed.js --reset",
     "seed:criteria": "node src/scripts/seedCriteria.js",
     "seed:criteria:reset": "node src/scripts/seedCriteria.js --reset",
+    "migrate:open-judging": "node src/scripts/migrateOpenJudging.js",
+    "migrate:stages": "node src/scripts/migrateStages.js",
     "smoke": "node tests/smoke.js",
     "check": "node tests/wiring.check.js",
     "smoke:uploads": "node tests/uploads.smoke.js",

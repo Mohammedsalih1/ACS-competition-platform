@@ -10,6 +10,9 @@ import { ApiError } from '../../utils/ApiError.js';
 import { ERROR_CODES } from '../../constants/errorCodes.js';
 import { ROLES } from '../../constants/roles.js';
 import { logoutAll } from '../auth/auth.service.js';
+import Submission from '../../models/submission.model.js';
+import JudgeAssignment from '../../models/judgeAssignment.model.js';
+import Evaluation from '../../models/evaluation.model.js';
 
 /** Escapes user input before it is used inside a RegExp. */
 const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -57,6 +60,26 @@ export const listUsers = async ({ page, limit, role, isActive, search, sort }) =
   ]);
 
   return { items, total };
+};
+
+export const getUserStats = async () => {
+  const rows = await User.aggregate([
+    {
+      $group: {
+        _id: { role: '$role', isActive: '$isActive' },
+        count: { $sum: 1 },
+      },
+    },
+  ]);
+  const byRole = Object.fromEntries(Object.values(ROLES).map((role) => [role, 0]));
+  let active = 0;
+  let disabled = 0;
+  rows.forEach(({ _id, count }) => {
+    byRole[_id.role] = (byRole[_id.role] || 0) + count;
+    if (_id.isActive) active += count;
+    else disabled += count;
+  });
+  return { total: active + disabled, byRole, active, disabled };
 };
 
 export const getUserById = async (id) => {
@@ -131,6 +154,19 @@ export const deleteUser = async (id, actorId) => {
   }
 
   await assertNotLastAdmin(user);
+
+  const [submissions, assignments, evaluations] = await Promise.all([
+    Submission.countDocuments({ contestant: user._id }),
+    JudgeAssignment.countDocuments({ judge: user._id }),
+    Evaluation.countDocuments({ judge: user._id }),
+  ]);
+  if (submissions || assignments || evaluations) {
+    throw ApiError.conflict(
+      'This account is linked to competition records and cannot be deleted. Disable it instead.',
+      ERROR_CODES.CONFLICT,
+      { submissions, assignments, evaluations },
+    );
+  }
   await logoutAll(user._id, 'account_disabled');
   await user.deleteOne();
 };

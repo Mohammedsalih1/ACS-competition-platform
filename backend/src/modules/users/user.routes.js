@@ -37,6 +37,8 @@ router
   .post(adminOnly, validate({ body: createUserSchema }), asyncHandler(userController.createUser))
   .get(adminOnly, validate({ query: listUsersQuerySchema }), asyncHandler(userController.listUsers));
 
+router.get('/stats', adminOnly, asyncHandler(userController.getUserStats));
+
 router.get(
   '/:id',
   validate({ params: idParamSchema }),

@@ -1,5 +1,7 @@
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { api } from '../api/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -9,9 +11,21 @@ export default function Dashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
+  const [submissions, setSubmissions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    api('/submissions/mine?limit=20')
+      .then((data) => setSubmissions(data.submissions))
+      .catch((err) => setError(err.message || 'Could not load submissions.'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const latest = submissions[0];
   const stats = [
-    { icon: FileText, label: 'Total Submissions', value: '0' },
-    { icon: Clock, label: 'Current Status', value: 'Pending' },
+    { icon: FileText, label: 'Total Submissions', value: String(submissions.length) },
+    { icon: Clock, label: 'Current Status', value: latest?.status?.replace('_', ' ') || 'Not submitted' },
     { icon: Trophy, label: 'Competition', value: 'Active' },
   ];
 
@@ -50,11 +64,28 @@ export default function Dashboard() {
           <CardTitle className="text-lg">Your Submissions</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col items-center justify-center py-12 text-center">
+          {error ? <p className="py-8 text-sm text-destructive">{error}</p> : loading ? (
+            <p className="py-8 text-sm text-muted-foreground">Loading submissions…</p>
+          ) : submissions.length ? (
+            <div className="divide-y divide-border">
+              {submissions.map((submission) => (
+                <div key={submission.id} className="flex flex-wrap items-center justify-between gap-3 py-4 first:pt-0 last:pb-0">
+                  <div>
+                    <p className="font-medium text-foreground">{submission.title}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {submission.submittedAt ? new Date(submission.submittedAt).toLocaleDateString() : 'Draft'}
+                    </p>
+                    <p className="mt-1 text-xs font-medium text-primary">{submission.stageParticipation?.stage?.name || 'Stage assignment pending'}</p>
+                  </div>
+                  <Badge variant="outline" className="capitalize">{submission.status.replace('_', ' ')}</Badge>
+                </div>
+              ))}
+            </div>
+          ) : <div className="flex flex-col items-center justify-center py-12 text-center">
             <FileText className="h-12 w-12 text-muted-foreground/30 mb-3" />
             <p className="font-medium text-muted-foreground">No submissions yet</p>
             <p className="text-sm text-muted-foreground/60 mt-1">
-              Upload your project ZIP file and live URL to submit
+              Add your project information and ZIP file to submit
             </p>
             <Button
               className="mt-4"
@@ -63,7 +94,7 @@ export default function Dashboard() {
               <Upload className="h-4 w-4 mr-2" />
               Submit Project
             </Button>
-          </div>
+          </div>}
         </CardContent>
       </Card>
     </div>

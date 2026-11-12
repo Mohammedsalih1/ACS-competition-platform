@@ -246,7 +246,7 @@ change status and download submissions for review.
 
 | Method | Path | Body | Success |
 | --- | --- | --- | --- |
-| POST | `/api/v1/submissions` | `{ title, liveUrl, description? }` (JSON) | `201 { id, title, status }` |
+| POST | `/api/v1/submissions` | `{ title, description?, liveUrl? }` (JSON) | `201 { id, title, status }` |
 | GET | `/api/v1/submissions/mine` | `page?`, `limit?`, `status?` | `200 { submissions }` + `meta` |
 | GET | `/api/v1/submissions` | `page?`, `limit?`, `status?` | `200 { submissions }` + `meta` (judge/admin) |
 | GET | `/api/v1/submissions/:submissionId` | — | `200 { submission }` |
@@ -258,7 +258,7 @@ change status and download submissions for review.
 | DELETE | `/api/v1/submissions/:submissionId` | — | `200 { message }` (admin cascade delete) |
 
 **Creating.** A submission starts as `draft` with `submittedAt: null`. `title` is
-required (1–200 chars), and `liveUrl` is required and must be a valid URL;
+required (1–200 chars). `liveUrl` is optional for backward compatibility and, when supplied, must be a valid URL;
 `description` is optional and defaults to `''`. The body is strict — sending
 `status` or `contestant` is a `400`, not a silent override.
 
@@ -308,25 +308,25 @@ All file viewer endpoints require an access token. Contestants can view their ow
 
 Path traversal attacks (`../`, `%00`) and requests for blocked files return `400` or `403`. Binary files and files over 1MB return `isViewable: false` and `content: null`.
 
-### Judging — criteria, assignments, evaluations
+### Judging — open queue, criteria, evaluations
 
 | Method | Path | Role | Notes |
 | --- | --- | --- | --- |
 | GET | `/judging/criteria` | admin, judge | `{ criteria }` (judges see active ones only) |
 | POST / PATCH / DELETE | `/judging/criteria[/:criterionId]` | admin | Manage criteria |
-| GET | `/judging/assignments` | admin | All assignments |
-| GET | `/judging/assignments/mine` | judge | The caller's assigned projects |
-| POST | `/judging/assignments` | admin | `{ judgeId, submissionId }` |
-| POST | `/judging/assignments/bulk` | admin | `{ judgeId, submissionIds }` |
-| DELETE | `/judging/assignments` | admin | `{ judgeId, submissionId }` |
-| POST | `/judging/evaluations/:submissionId` | judge | `{ scores: [{ criterionId, score, note? }], generalNote? }` → `201`; one evaluation per judge per project (`409 ALREADY_EVALUATED`) |
+| GET / PATCH | `/judging/settings` | admin (GET also judge) | Configure required evaluations; post-start changes require an audited reason |
+| GET | `/judging/dashboard` | judge | Shared-queue and personal progress counts |
+| GET | `/judging/evaluations/mine` | judge | The caller's draft and final evaluations |
+| PUT | `/judging/evaluations/:submissionId/draft` | judge | Save a partial draft; drafts never affect results |
+| POST | `/judging/evaluations/:submissionId/submit` | judge | Submit eight core scores and separate `bonusScore` (0–5); final records lock |
 | GET | `/judging/evaluations/:submissionId/mine` | judge | The caller's own evaluation |
 | GET | `/judging/evaluations/:submissionId` | admin | All evaluations + per-criterion averages |
+| POST | `/judging/evaluations/:submissionId/approve` | admin | Approve a completed aggregate as an official result |
 
-Scores are whole numbers, `0..maxScore` per criterion. Every non-bonus criterion
-is required; the bonus criterion is optional. Judging errors:
-`JUDGE_NOT_ASSIGNED` (403), `ALREADY_EVALUATED` (409), `SCORE_OUT_OF_RANGE` and
-`MISSING_CRITERION_SCORE` (400).
+Every judge can inspect every eligible submitted project. Final submission uses
+an atomic completion-slot claim, so concurrent requests cannot exceed the
+configured requirement. Scores are whole numbers, `0..10` for each of the eight
+core criteria; innovation bonus is a separate `0..5` value.
 
 ### Results — scoring, ranking, statistics
 
@@ -334,10 +334,10 @@ is required; the bonus criterion is optional. Judging errors:
 (bonus included; with the official criteria the maximum is 85). A project's
 `averageScore` is the mean of its judges' totals and `totalScore` their sum.
 Ranking uses `averageScore`, so projects judged by a different number of judges
-stay comparable. A project is ranked once it has **at least one** evaluation;
-`isComplete: false` means some assigned judges have not finished
-(`evaluatedCount` / `assignedCount`). Ties share a rank (`1, 1, 3`), ordered by
-earliest `submittedAt`. Scores are rounded to 2 decimals.
+stay comparable. Drafts never participate. A result enters the provisional
+admin ranking only after the configured requirement is met, and enters the
+public ranking only after explicit admin approval and publication. Ties share
+a rank (`1, 1, 3`).
 
 **Visibility.** Admins always see results. Contestants only see results after an
 admin publishes them (`403 RESULTS_NOT_PUBLISHED` before that), and only their
@@ -356,7 +356,7 @@ own project's detail; judges have no results access.
 
 Leaderboard row (admin): `rank, submissionId, title, contestant{id,name,email},
 averageScore, totalScore, highestScore, lowestScore, evaluatedCount,
-assignedCount, isComplete, percentage`. Contestants receive only
+approvalStatus, isComplete, percentage`. Contestants receive only
 `rank, submissionId, title, contestant{id,name}, averageScore, percentage`.
 
 Project result: the fields above plus `totalParticipants`, `maxScore` and
@@ -366,10 +366,8 @@ judge identities and notes are never sent to contestants. A project with no
 evaluations returns `rank`, `averageScore` and `percentage` as `null`.
 
 Stats (`/results/stats`): `published`, `users{contestants,judges}`,
-`submissions{total,byStatus,unassigned,evaluated,pendingEvaluation,fullyEvaluated}`,
-`evaluations{total,assignments,progressPercent}`,
-`scores{maxScore,average,highest,lowest,topProject}` and
-`criteriaAverages[{key,name,maxScore,average}]`.
+`submissions{total,byStatus,awaitingReview,inProgress,pendingEvaluation,fullyEvaluated}`,
+`evaluations{total,drafts,requiredPerProject,progressPercent}` and score aggregates.
 
 ### Health
 
@@ -417,7 +415,6 @@ into an endpoint that never meant to accept it.
 | `INSUFFICIENT_ROLE` | Wrong role. `details.requiredRoles` lists what is needed |
 | `ACCOUNT_DISABLED` | The account was disabled by an admin |
 | `RESULTS_NOT_PUBLISHED` | Results are not published yet (contestants only) |
-| `JUDGE_NOT_ASSIGNED` | The judge is not assigned to this project |
 
 **Never refresh on a 403.** The token is fine; the permission is not. Retrying
 just loops.

@@ -1,62 +1,11 @@
-import { useEffect, useState } from "react";
-import { api } from "../../api/client";
-import ProjectCard from "../../components/judge/ProjectCard";
+import { useEffect, useState } from 'react';
+import { api } from '../../api/client';
+import ProjectCard from '../../components/judge/ProjectCard';
+import { Search } from 'lucide-react';
 
-function Projects() {
-  const [projects, setProjects] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    api("/submissions")
-      .then((data) => setProjects(data.submissions))
-      .finally(() => setLoading(false));
-  }, []);
-
-  return (
-    <div className="space-y-8">
-      {/* Header */}
-      <section>
-        <p className="text-sm font-medium text-acs-orange">
-          Project Management
-        </p>
-
-        <div className="mt-1 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight text-acs-purple">
-              Assigned Projects
-            </h1>
-
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-acs-text-muted">
-              View and manage the projects assigned to you
-              for evaluation.
-            </p>
-          </div>
-
-          <div className="shrink-0 rounded-xl bg-acs-purple px-4 py-2.5 text-sm font-semibold text-white">
-            {projects.length} Projects
-          </div>
-        </div>
-      </section>
-
-      {/* Projects */}
-      <section>
-        {loading ? (
-          <div className="flex justify-center py-12">
-            <div className="h-8 w-8 animate-spin rounded-full border-4 border-acs-purple border-t-transparent" />
-          </div>
-        ) : (
-          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-            {projects.map((project) => (
-              <ProjectCard
-                key={project.id}
-                project={project}
-              />
-            ))}
-          </div>
-        )}
-      </section>
-    </div>
-  );
+export default function Projects() {
+  const [projects, setProjects] = useState([]); const [search, setSearch] = useState(''); const [stage, setStage] = useState(''); const [stages, setStages] = useState([]); const [loading, setLoading] = useState(true); const [error, setError] = useState('');
+  useEffect(() => { api('/stages').then((data) => setStages(data.stages || [])).catch(() => {}); }, []);
+  useEffect(() => { const timer = setTimeout(() => { setLoading(true); const query = new URLSearchParams({ limit: '50', sort: '-submittedAt' }); if (search) query.set('search', search); if (stage) query.set('stage', stage); api(`/submissions?${query}`).then((data) => setProjects(data.submissions)).catch((err) => setError(err.message)).finally(() => setLoading(false)); }, 250); return () => clearTimeout(timer); }, [search, stage]);
+  return <div className="space-y-7 p-4 sm:p-6 lg:p-8"><header><p className="text-xs font-bold uppercase tracking-[.18em] text-acs-orange">Shared review queue</p><h2 className="mt-2 text-3xl font-bold text-primary">Open projects</h2><p className="mt-2 max-w-2xl text-sm text-muted-foreground">Choose any eligible submission. A project closes automatically when its stage evaluation requirement is complete.</p></header><div className="grid max-w-3xl gap-3 sm:grid-cols-[1fr_240px]"><div className="relative"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search projects" className="h-11 w-full rounded-xl border border-input bg-white pl-10 pr-4 text-sm shadow-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/10" /></div><select aria-label="Filter by stage" value={stage} onChange={(event) => setStage(event.target.value)} className="h-11 rounded-xl border border-input bg-white px-3 text-sm shadow-sm"><option value="">All open stages</option>{stages.filter((item) => ['open', 'judging'].includes(item.status)).map((item) => <option key={item.id || item._id} value={item.id || item._id}>{item.name}</option>)}</select></div>{error && <p className="text-sm text-destructive">{error}</p>}{loading ? <p className="text-sm text-muted-foreground">Loading projects…</p> : projects.length ? <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">{projects.map((project) => <ProjectCard key={project.id} project={project} />)}</div> : <div className="rounded-2xl border border-dashed p-12 text-center"><h3 className="font-semibold">No open projects</h3><p className="mt-2 text-sm text-muted-foreground">All eligible projects may already be complete.</p></div>}</div>;
 }
-
-export default Projects;

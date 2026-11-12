@@ -289,8 +289,10 @@ section('submission validation');
   check('description defaults to an empty string rather than undefined', req.body.description === '');
   check('the live URL is trimmed before it reaches the controller', req.body.liveUrl === 'https://bankak.example');
 
-  const noLiveUrl = await runMiddleware(createGuard, { body: { title: 'Missing URL' } });
-  check('a submission without a live URL is rejected', noLiveUrl.error?.code === 'VALIDATION_ERROR');
+  const noLiveUrlReq = { body: { title: 'No URL required' } };
+  const noLiveUrl = await runMiddleware(createGuard, noLiveUrlReq);
+  check('a submission without a live URL is accepted', noLiveUrl.error === null);
+  check('a missing live URL normalises to an empty legacy value', noLiveUrlReq.body.liveUrl === '');
 
   const smuggled = await runMiddleware(createGuard, { body: { title: 'Sneaky', status: 'scored', contestant: '507f1f77bcf86cd799439011' } });
   check('status and ownership cannot be smuggled in through the body', smuggled.error?.code === 'VALIDATION_ERROR');

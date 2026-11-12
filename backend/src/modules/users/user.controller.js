@@ -26,6 +26,11 @@ export const getUser = async (req, res) => {
   return sendSuccess(res, { user });
 };
 
+export const getUserStats = async (_req, res) => {
+  const stats = await userService.getUserStats();
+  return sendSuccess(res, { stats });
+};
+
 export const updateUser = async (req, res) => {
   const user = await userService.updateUser(req.params.id, req.body, req.user.id);
   return sendSuccess(res, { user });

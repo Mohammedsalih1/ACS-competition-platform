@@ -1,84 +1,17 @@
-import * as judgingService from './judging.service.js';
+import * as service from './judging.service.js';
 import { sendCreated, sendSuccess } from '../../utils/apiResponse.js';
 
-// ── Criteria ────────────────────────────────────────────────────────
-
-export const listCriteria = async (req, res) => {
-  const activeOnly = req.user.role !== 'admin';
-  const criteria = await judgingService.listCriteria({ activeOnly });
-  return sendSuccess(res, { criteria });
-};
-
-export const createCriterion = async (req, res) => {
-  const criterion = await judgingService.createCriterion(req.body, req.user.id);
-  return sendCreated(res, { criterion });
-};
-
-export const updateCriterion = async (req, res) => {
-  const criterion = await judgingService.updateCriterion(req.params.criterionId, req.body);
-  return sendSuccess(res, { criterion });
-};
-
-export const deleteCriterion = async (req, res) => {
-  await judgingService.deleteCriterion(req.params.criterionId);
-  return sendSuccess(res, { message: 'Criterion deleted' });
-};
-
-// ── Assignments ─────────────────────────────────────────────────────
-
-export const assignJudge = async (req, res) => {
-  const assignment = await judgingService.assignJudge(
-    req.body.judgeId,
-    req.body.submissionId,
-    req.user.id,
-  );
-  return sendCreated(res, { assignment });
-};
-
-export const bulkAssign = async (req, res) => {
-  const result = await judgingService.bulkAssignJudge(
-    req.body.judgeId,
-    req.body.submissionIds,
-    req.user.id,
-  );
-  return sendCreated(res, result);
-};
-
-export const removeAssignment = async (req, res) => {
-  await judgingService.removeAssignment(req.body.judgeId, req.body.submissionId);
-  return sendSuccess(res, { message: 'Assignment removed' });
-};
-
-export const getMyAssignments = async (req, res) => {
-  const assignments = await judgingService.getMyAssignments(req.user.id);
-  return sendSuccess(res, { assignments });
-};
-
-export const listAssignments = async (req, res) => {
-  const assignments = await judgingService.listAssignments(req.query);
-  return sendSuccess(res, { assignments });
-};
-
-// ── Evaluations ─────────────────────────────────────────────────────
-
-export const submitEvaluation = async (req, res) => {
-  const evaluation = await judgingService.submitEvaluation(
-    req.user.id,
-    req.params.submissionId,
-    req.body,
-  );
-  return sendCreated(res, { evaluation });
-};
-
-export const getMyEvaluation = async (req, res) => {
-  const evaluation = await judgingService.getMyEvaluation(
-    req.user.id,
-    req.params.submissionId,
-  );
-  return sendSuccess(res, { evaluation });
-};
-
-export const getEvaluationsForSubmission = async (req, res) => {
-  const result = await judgingService.getEvaluationsForSubmission(req.params.submissionId);
-  return sendSuccess(res, result);
-};
+export const listCriteria = async (req, res) => sendSuccess(res, { criteria: await service.listCriteria({ activeOnly: req.user.role !== 'admin' }) });
+export const createCriterion = async (req, res) => sendCreated(res, { criterion: await service.createCriterion(req.body, req.user.id) });
+export const updateCriterion = async (req, res) => sendSuccess(res, { criterion: await service.updateCriterion(req.params.criterionId, req.body) });
+export const deleteCriterion = async (req, res) => { await service.deleteCriterion(req.params.criterionId); return sendSuccess(res, { message: 'Criterion deleted' }); };
+export const getSettings = async (_req, res) => sendSuccess(res, { settings: await service.getSettings() });
+export const updateSettings = async (req, res) => sendSuccess(res, { settings: await service.updateSettings(req.body.requiredEvaluations, req.body.reason, req.user.id) });
+export const getDashboard = async (req, res) => sendSuccess(res, { dashboard: await service.getDashboard(req.user.id) });
+export const listMyEvaluations = async (req, res) => sendSuccess(res, { evaluations: await service.listMyEvaluations(req.user.id, req.query.status) });
+export const saveDraft = async (req, res) => sendSuccess(res, { evaluation: await service.saveDraft(req.user.id, req.params.submissionId, req.body) });
+export const submitEvaluation = async (req, res) => sendCreated(res, { evaluation: await service.submitEvaluation(req.user.id, req.params.submissionId, req.body) });
+export const getMyEvaluation = async (req, res) => sendSuccess(res, { evaluation: await service.getMyEvaluation(req.user.id, req.params.submissionId) });
+export const getEvaluationConfig = async (req, res) => sendSuccess(res, { configuration: await service.getEvaluationConfig(req.params.submissionId) });
+export const getEvaluationsForSubmission = async (req, res) => sendSuccess(res, await service.getEvaluationsForSubmission(req.params.submissionId));
+export const approveEvaluationResult = async (req, res) => sendSuccess(res, { submission: await service.approveEvaluationResult(req.params.submissionId, req.user.id) });

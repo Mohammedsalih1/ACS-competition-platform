@@ -17,6 +17,7 @@ import submissionRoutes from '../modules/submissions/submission.routes.js';
 import judgingRoutes from '../modules/judging/judging.routes.js';
 import resultsRoutes from '../modules/results/results.routes.js';
 import fileRoutes from '../modules/files/file.routes.js';
+import stageRoutes from '../modules/stages/stages.routes.js';
 import { sendSuccess } from '../utils/apiResponse.js';
 
 const router = Router();
@@ -37,6 +38,7 @@ router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
 router.use('/submissions', submissionRoutes);
 router.use('/judging', judgingRoutes);
+router.use('/stages', stageRoutes);
 router.use('/results', resultsRoutes);
 router.use('/files', fileRoutes);
 

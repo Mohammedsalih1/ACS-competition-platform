@@ -32,6 +32,12 @@ const ERROR_MESSAGES = {
   default: 'An unexpected error occurred. Please try again.',
 };
 
+const homeForRole = (role) => ({
+  admin: '/admin',
+  judge: '/judge',
+  contestant: '/dashboard',
+}[role] || '/forbidden');
+
 export default function Login() {
   const { login, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
@@ -45,7 +51,7 @@ export default function Login() {
 
   // Already signed in -> go straight to the role-appropriate dashboard.
   if (isAuthenticated) {
-    return <Navigate to={user?.role === 'judge' ? '/judge/dashboard' : '/dashboard'} replace />;
+    return <Navigate to={homeForRole(user?.role)} replace />;
   }
 
   const onSubmit = async (data) => {
@@ -53,7 +59,7 @@ export default function Login() {
 
     try {
       const { user: loggedInUser } = await login(data.email, data.password);
-      navigate(loggedInUser?.role === 'judge' ? '/judge/dashboard' : '/dashboard');
+      navigate(homeForRole(loggedInUser?.role));
     } catch (err) {
       const code = err?.code || 'default';
       setError(ERROR_MESSAGES[code] || ERROR_MESSAGES.default);

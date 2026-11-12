@@ -168,6 +168,16 @@ Short version:
 
 To add a module, see the comment block at the top of `src/routes/index.js`.
 
+### Competition stages and judging migration
+
+For an existing installation, back up the database, run `npm run seed:criteria`
+to safely synchronize the official eight criteria and separate bonus, then run
+`npm run migrate:stages`. The migration creates the initial open stage only when
+needed and assigns submitted projects that do not already have an active stage
+participation. Existing evaluations are retained as legacy records; they are
+not converted to the new rubric version or included in new stage aggregates.
+The migration is safe to rerun.
+
 ---
 
 ## Deployment notes

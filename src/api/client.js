@@ -70,7 +70,7 @@ export async function api(path, options = {}) {
   }
 
   if (!response.ok) throw Object.assign(new Error(body.error.message), body.error);
-  return body.data;
+  return body?.meta ? { ...body.data, meta: body.meta } : body.data;
 }
 
 // Downloads a binary endpoint with the same auth logic

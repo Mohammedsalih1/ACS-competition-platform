@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { api } from '../api/client';
@@ -16,7 +16,6 @@ import FileDropZone from '../components/submission/FileDropZone';
 const schema = z.object({
   title: z.string().min(1, 'Project title is required').max(200, 'Title must be under 200 characters'),
   description: z.string().max(1000, 'Description must be under 1000 characters').optional(),
-  liveUrl: z.string().min(1, 'Live URL is required').url('Please enter a valid URL including https://'),
 });
 
 // Map backend error codes to user-friendly messages
@@ -43,11 +42,11 @@ export default function SubmitPage() {
 
   const form = useForm({
     resolver: zodResolver(schema),
-    defaultValues: { title: '', description: '', liveUrl: '' },
+    defaultValues: { title: '', description: '' },
   });
 
-  const titleValue = form.watch('title') || '';
-  const descValue = form.watch('description') || '';
+  const titleValue = useWatch({ control: form.control, name: 'title' }) || '';
+  const descValue = useWatch({ control: form.control, name: 'description' }) || '';
 
   const handleFileSelect = (selectedFile, err) => {
     setFile(selectedFile);
@@ -70,7 +69,6 @@ export default function SubmitPage() {
         method: 'POST',
         body: JSON.stringify({
           title: data.title,
-          liveUrl: data.liveUrl,
           description: data.description || '',
         }),
       });
@@ -94,7 +92,7 @@ export default function SubmitPage() {
       // Handle field-level validation errors from the backend
       if (code === 'VALIDATION_ERROR' && Array.isArray(err?.details)) {
         err.details.forEach(({ field, message }) => {
-          if (field === 'title' || field === 'description' || field === 'liveUrl') {
+          if (field === 'title' || field === 'description') {
             form.setError(field, { message });
           }
         });
@@ -210,25 +208,6 @@ export default function SubmitPage() {
                   error={fileError}
                 />
               </div>
-
-              {/* Live URL */}
-              <FormField
-                control={form.control}
-                name="liveUrl"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Live URL <span className="text-destructive">*</span></FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="https://your-project.com"
-                        type="url"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
 
               {/* Submit */}
               <Button

@@ -7,6 +7,7 @@ const gradeLevelSchema = new mongoose.Schema(
     label: { type: String, required: true, trim: true },
     labelAr: { type: String, trim: true, default: '' },
     description: { type: String, trim: true, default: '' },
+    descriptionAr: { type: String, trim: true, default: '' },
   },
   { _id: false },
 );
@@ -25,6 +26,9 @@ const judgingCriteriaSchema = new mongoose.Schema(
     nameAr: { type: String, trim: true, maxlength: 200, default: '' },
     description: { type: String, trim: true, maxlength: 2000, default: '' },
     descriptionAr: { type: String, trim: true, maxlength: 2000, default: '' },
+    standard: { type: String, trim: true, maxlength: 500, default: '' },
+    standardAr: { type: String, trim: true, maxlength: 500, default: '' },
+    verificationMethodAr: { type: String, trim: true, maxlength: 2000, default: '' },
     maxScore: { type: Number, required: true, min: 1 },
     order: { type: Number, required: true, default: 0 },
     isBonus: { type: Boolean, default: false },
