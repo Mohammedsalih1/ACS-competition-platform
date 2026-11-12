@@ -317,6 +317,12 @@ section('http surface');
   const health = await call('/health');
   check('/health responds without authentication', health.status === 200 && health.body.success === true);
 
+  const readiness = await call('/api/v1/health');
+  check(
+    'API readiness returns 503 when MongoDB is disconnected',
+    readiness.status === 503 && readiness.body.error?.code === 'SERVICE_UNAVAILABLE',
+  );
+
   const missing = await call('/api/v1/does-not-exist');
   check('an unknown route returns the standard error envelope', missing.status === 404 && missing.body.error.code === 'NOT_FOUND');
   check('every response carries an X-Request-Id header', !!missing.headers.get('x-request-id'));
