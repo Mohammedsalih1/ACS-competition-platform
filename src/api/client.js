@@ -1,7 +1,13 @@
-// Points at the local backend by default; override with VITE_API_URL per
-// environment (see .env.example). Must stay in sync with the backend's
-// API_PREFIX and CORS_ORIGINS.
-const API = import.meta.env.VITE_API_URL ?? 'http://localhost:5000/api/v1';
+// Vite embeds VITE_API_URL at build time. Keep the localhost fallback for
+// development, but never let a production build silently call localhost.
+const getApiUrl = () => {
+  const configuredUrl = import.meta.env.VITE_API_URL?.trim();
+  if (configuredUrl) return configuredUrl;
+  if (import.meta.env.DEV) return 'http://localhost:5000/api/v1';
+  throw new Error('VITE_API_URL must be set to the deployed API URL in production.');
+};
+
+const API = getApiUrl();
 
 // Access token is kept in memory only; never persisted to storage.
 let accessToken = null;
