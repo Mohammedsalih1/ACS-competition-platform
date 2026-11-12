@@ -17,18 +17,28 @@ import submissionRoutes from '../modules/submissions/submission.routes.js';
 import judgingRoutes from '../modules/judging/judging.routes.js';
 import resultsRoutes from '../modules/results/results.routes.js';
 import fileRoutes from '../modules/files/file.routes.js';
-import { sendSuccess } from '../utils/apiResponse.js';
-
+import { buildErrorBody, sendSuccess } from '../utils/apiResponse.js';
+import { ERROR_CODES } from '../constants/errorCodes.js';
 const router = Router();
-
-/** Liveness + database readiness. Unauthenticated on purpose. */
+/** Database readiness. Liveness is exposed separately at /health. */
 router.get('/health', (req, res) => {
+  const databaseReady = mongoose.connection.readyState === 1;
   const states = ['disconnected', 'connected', 'connecting', 'disconnecting'];
+  const database = states[mongoose.connection.readyState] ?? 'unknown';
+  if (!databaseReady) {
+    return res.status(503).json(
+      buildErrorBody({
+        code: ERROR_CODES.SERVICE_UNAVAILABLE,
+        message: 'Database is not ready',
+        requestId: req.id,
+      }),
+    );
+  }
 
   return sendSuccess(res, {
     status: 'ok',
     uptime: Math.floor(process.uptime()),
-    database: states[mongoose.connection.readyState] ?? 'unknown',
+    database,
     timestamp: new Date().toISOString(),
   });
 });
