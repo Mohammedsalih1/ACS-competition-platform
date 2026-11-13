@@ -1,7 +1,7 @@
 import ApiError from '../../utils/ApiError.js';
 import JudgingCriteria from '../../models/judgingCriteria.model.js';
 import Evaluation from '../../models/evaluation.model.js';
-import Submission from '../../models/submission.model.js';
+import Submission, { SUBMISSION_STATUS } from '../../models/submission.model.js';
 import { CompetitionStage, ProjectStageParticipation } from '../../models/competitionStage.model.js';
 
 const activeRubric = (stage) => stage.rubricVersions.find((item) => item.version === stage.activeRubricVersion);
@@ -103,6 +103,27 @@ export const assignProjects = async (stageId, submissionIds, actor, reason = '')
     await Submission.updateOne({ _id: submission._id }, { $set: { stageParticipation: rows.at(-1)._id } });
   }
   return rows;
+};
+
+export const assignUnassignedSubmissionsToSoleOpenStage = async () => {
+  const stages = await CompetitionStage.find({ status: 'open' }).select('_id').limit(2).lean();
+  if (stages.length !== 1) return 0;
+
+  const assignedSubmissionIds = await ProjectStageParticipation.distinct('submission', { active: true });
+  const submissions = await Submission.find({
+    _id: { $nin: assignedSubmissionIds },
+    status: { $in: [SUBMISSION_STATUS.SUBMITTED, SUBMISSION_STATUS.UNDER_REVIEW, SUBMISSION_STATUS.SCORED] },
+    'files.0': { $exists: true },
+  }).select('_id').lean();
+  if (submissions.length === 0) return 0;
+
+  await assignProjects(
+    stages[0]._id,
+    submissions.map((submission) => submission._id),
+    null,
+    'Automatic assignment to the sole open stage',
+  );
+  return submissions.length;
 };
 
 export const getStageRubricForSubmission = async (submissionId) => {

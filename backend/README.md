@@ -176,7 +176,10 @@ to safely synchronize the official eight criteria and separate bonus, then run
 needed and assigns submitted projects that do not already have an active stage
 participation. Existing evaluations are retained as legacy records; they are
 not converted to the new rubric version or included in new stage aggregates.
-The migration is safe to rerun.
+The migration is safe to rerun. When exactly one stage is open, unassigned
+submitted projects with uploaded files are also assigned to that stage when a
+judge loads the project queue. If there are multiple open stages, administrators
+must continue to assign projects explicitly.
 
 ---
 

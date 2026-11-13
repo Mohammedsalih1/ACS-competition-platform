@@ -16,6 +16,7 @@ const { default: JudgingCriteria } = await import('../src/models/judgingCriteria
 const { default: Evaluation } = await import('../src/models/evaluation.model.js');
 const { default: ResultsSetting } = await import('../src/models/resultsSetting.model.js');
 const { default: CompetitionSetting } = await import('../src/models/competitionSetting.model.js');
+const { CompetitionStage, ProjectStageParticipation } = await import('../src/models/competitionStage.model.js');
 const { ROLES } = await import('../src/constants/roles.js');
 await connectDatabase(); const server = createApp().listen(0); const base = `http://127.0.0.1:${server.address().port}/api/v1`;
 let passed = 0; const failures = []; const check = (label, ok, extra = '') => { if (ok) { passed += 1; console.log(`  PASS  ${label}`); } else { failures.push(label); console.log(`  FAIL  ${label} ${extra}`); } };
@@ -26,8 +27,31 @@ await Promise.all([User.deleteMany({}), Session.deleteMany({}), Submission.delet
 const mk = (name, role) => User.create({ name, email: `${name.toLowerCase()}@acs.test`, password, role });
 const [admin, contestant, judge1, judge2, judge3] = await Promise.all([mk('Admin', ROLES.ADMIN), mk('Contestant', ROLES.CONTESTANT), mk('Judge1', ROLES.JUDGE), mk('Judge2', ROLES.JUDGE), mk('Judge3', ROLES.JUDGE)]);
 const criteria = await JudgingCriteria.create(Array.from({ length: 8 }, (_, index) => ({ key: `criterion_${index + 1}`, name: `Criterion ${index + 1}`, maxScore: 10, order: index + 1 })));
-await JudgingCriteria.create({ key: 'innovation_bonus', name: 'Innovation bonus', maxScore: 5, order: 9, isBonus: true });
+const bonusCriterion = await JudgingCriteria.create({ key: 'innovation_bonus', name: 'Innovation bonus', maxScore: 5, order: 9, isBonus: true });
 const submission = await Submission.create({ title: 'Open Project', contestant: contestant._id, status: 'submitted', submittedAt: new Date(), files: [new mongoose.Types.ObjectId()] });
+const stageData = {
+  name: 'Open judging stage',
+  order: 1,
+  status: 'open',
+  requiredEvaluations: 2,
+  activeRubricVersion: 1,
+  rubricVersions: [{
+    version: 1,
+    criteria: [...criteria, bonusCriterion].map((criterion) => ({
+      criterionId: criterion._id,
+      key: criterion.key,
+      name: criterion.name,
+      maxScore: criterion.maxScore,
+      order: criterion.order,
+      active: true,
+      bonus: criterion.isBonus,
+    })),
+    bonusEnabled: true,
+    bonusMax: bonusCriterion.maxScore,
+  }],
+};
+const [openStage] = await CompetitionStage.create([stageData]);
+const [secondOpenStage] = await CompetitionStage.create([{ ...stageData, name: 'Second open judging stage', order: 2 }]);
 const [adminToken, contestantToken, j1, j2, j3] = await Promise.all(['admin', 'contestant', 'judge1', 'judge2', 'judge3'].map((name) => login(`${name}@acs.test`)));
 const scores = (value) => criteria.map((criterion) => ({ criterionId: criterion.id, score: value, note: 'Evidence' }));
 console.log('\nACS open judging and results smoke test\n');
@@ -41,8 +65,11 @@ check('judge cannot change competition settings', forbiddenSetting.status === 40
 const assignmentGone = await api('/judging/assignments', { token: adminToken });
 check('assignment API no longer exists', assignmentGone.status === 404);
 
+const ambiguousQueue = await api('/submissions', { token: j1 });
+check('unassigned projects remain unassigned when multiple stages are open', ambiguousQueue.status === 200 && ambiguousQueue.body.data.submissions.length === 0 && !await ProjectStageParticipation.exists({ submission: submission.id, active: true }));
+await CompetitionStage.deleteOne({ _id: secondOpenStage._id });
 const queue = await api('/submissions', { token: j1 });
-check('all judges can see the shared eligible project queue', queue.status === 200 && queue.body.data.submissions.some((item) => item.id === submission.id));
+check('unassigned projects enter the judge queue when exactly one stage is open', queue.status === 200 && queue.body.data.submissions.some((item) => item.id === submission.id) && await ProjectStageParticipation.exists({ submission: submission.id, stage: openStage._id, active: true }));
 const draft = await api(`/judging/evaluations/${submission.id}/draft`, { method: 'PUT', token: j1, body: { scores: scores(8).slice(0, 3), bonusScore: 2, generalNote: 'Draft' } });
 check('partial evaluation can be saved as a draft', draft.status === 200 && draft.body.data.evaluation.status === 'draft');
 check('draft does not increment completion count', (await Submission.findById(submission.id)).completedEvaluationCount === 0);

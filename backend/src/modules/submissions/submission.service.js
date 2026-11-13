@@ -27,6 +27,7 @@ import CompetitionSetting from "../../models/competitionSetting.model.js";
 import { ROLES } from "../../constants/roles.js";
 import { User } from "../../models/user.model.js";
 import { ProjectStageParticipation } from '../../models/competitionStage.model.js';
+import { assignUnassignedSubmissionsToSoleOpenStage } from '../stages/stages.service.js';
 
 // ── Helpers ─────────────────────────────────────────────────────────
 
@@ -99,6 +100,7 @@ export const listSubmissions = async ({ page, limit, status, sort, contestant, s
 
 export const listSubmissionsForUser = async (query, user) => {
   if (user.role === ROLES.JUDGE) {
+    await assignUnassignedSubmissionsToSoleOpenStage();
     const stageFilter = { active: true, completedEvaluationCount: { $lt: 1000000 } };
     if (query.stage) stageFilter.stage = query.stage;
     const allParticipations = await ProjectStageParticipation.find(stageFilter).populate('stage', 'status requiredEvaluations name activeRubricVersion').lean();
