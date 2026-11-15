@@ -11,6 +11,36 @@ let refreshPromise = null;
 export const setAccessToken = (token) => { accessToken = token; };
 export const clearAccessToken = () => { accessToken = null; };
 
+function sendFormDataWithProgress(path, options) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open(options.method || 'GET', API + path);
+    xhr.withCredentials = true;
+    const headers = {
+      ...(accessToken ? { Authorization: 'Bearer ' + accessToken } : {}),
+      ...options.headers,
+    };
+    Object.entries(headers).forEach(([name, value]) => xhr.setRequestHeader(name, value));
+    xhr.upload.addEventListener('progress', (event) => {
+      if (event.lengthComputable) {
+        options.onUploadProgress({
+          loaded: event.loaded,
+          total: event.total,
+          percent: Math.round((event.loaded / event.total) * 100),
+        });
+      }
+    });
+    xhr.addEventListener('load', () => resolve({
+      status: xhr.status,
+      ok: xhr.status >= 200 && xhr.status < 300,
+      json: async () => JSON.parse(xhr.responseText),
+    }));
+    xhr.addEventListener('error', () => reject(new TypeError('Network request failed')));
+    xhr.addEventListener('abort', () => reject(new Error('Request was cancelled')));
+    xhr.send(options.body);
+  });
+}
+
 // Refresh the access token via an httpOnly cookie. Concurrent callers
 // reuse the same in-flight request (single-flight pattern).
 async function refreshTokens() {
@@ -36,7 +66,9 @@ export async function api(path, options = {}) {
   const isFormData = options.body instanceof FormData;
 
   const send = () =>
-    fetch(API + path, {
+    isFormData && options.onUploadProgress
+      ? sendFormDataWithProgress(path, options)
+      : fetch(API + path, {
       ...options,
       credentials: 'include',
       headers: {

@@ -41,6 +41,7 @@ export default function SubmitPage() {
   const [file, setFile] = useState(null);
   const [fileError, setFileError] = useState(null);
   const [stage, setStage] = useState(STAGES.IDLE);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState(null);
   const [submissionId, setSubmissionId] = useState(draftId);
   const [isLoadingDraft, setIsLoadingDraft] = useState(Boolean(draftId));
@@ -123,12 +124,14 @@ export default function SubmitPage() {
 
       // Upload the ZIP after creating or updating the submission details.
       setStage(STAGES.UPLOADING);
+      setUploadProgress(0);
       const formData = new FormData();
       formData.append('projectFile', file);
 
       await api(`/submissions/${activeSubmissionId}/upload`, {
         method: 'POST',
         body: formData,
+        onUploadProgress: ({ percent }) => setUploadProgress(percent),
         // Do NOT set Content-Type — the browser must set it with the multipart boundary
       });
 
@@ -318,7 +321,29 @@ export default function SubmitPage() {
                 />
               </div>
 
-              {/* Submit */}
+                {stage === STAGES.UPLOADING && (
+                  <div className="space-y-2" aria-live="polite">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Uploading ZIP...</span>
+                      <span className="font-medium text-primary">{uploadProgress}%</span>
+                    </div>
+                    <div
+                      className="h-2 w-full overflow-hidden rounded-full bg-muted"
+                      role="progressbar"
+                      aria-label="ZIP upload progress"
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-valuenow={uploadProgress}
+                    >
+                      <div
+                        className="h-full rounded-full bg-primary transition-[width] duration-150"
+                        style={{ width: `${uploadProgress}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Submit */}
               <Button
                 type="submit"
                 className="w-full"
