@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -36,15 +36,48 @@ const STAGES = { IDLE: 'idle', CREATING: 'creating', UPLOADING: 'uploading', SUC
 
 export default function SubmitPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const draftId = searchParams.get('draft');
   const [file, setFile] = useState(null);
   const [fileError, setFileError] = useState(null);
   const [stage, setStage] = useState(STAGES.IDLE);
   const [error, setError] = useState(null);
+  const [submissionId, setSubmissionId] = useState(draftId);
+  const [isLoadingDraft, setIsLoadingDraft] = useState(Boolean(draftId));
+  const [draftLoadError, setDraftLoadError] = useState(null);
 
   const form = useForm({
     resolver: zodResolver(schema),
     defaultValues: { title: '', description: '', liveUrl: '' },
   });
+
+  useEffect(() => {
+    if (!draftId) return undefined;
+
+    let active = true;
+    api(`/submissions/${draftId}`)
+      .then(({ submission }) => {
+        if (!active) return;
+        if (submission.status !== 'draft') {
+          setDraftLoadError('This submission is no longer a draft and cannot be continued here.');
+          return;
+        }
+        setSubmissionId(submission.id);
+        form.reset({
+          title: submission.title || '',
+          description: submission.description || '',
+          liveUrl: submission.liveUrl || '',
+        });
+      })
+      .catch((err) => {
+        if (active) setDraftLoadError(err.message || 'Could not load this draft.');
+      })
+      .finally(() => {
+        if (active) setIsLoadingDraft(false);
+      });
+
+    return () => { active = false; };
+  }, [draftId, form]);
 
   const titleValue = useWatch({ control: form.control, name: 'title' }) || '';
   const descValue = useWatch({ control: form.control, name: 'description' }) || '';
@@ -63,24 +96,37 @@ export default function SubmitPage() {
 
     setError(null);
     setStage(STAGES.CREATING);
+    let createdSubmissionId = null;
 
     try {
-      // Stage 1: Create the submission record
-      const submission = await api('/submissions', {
-        method: 'POST',
-        body: JSON.stringify({
-          title: data.title,
-          description: data.description || '',
-          liveUrl: data.liveUrl || '',
-        }),
-      });
+      const submissionData = {
+        title: data.title,
+        description: data.description || '',
+        liveUrl: data.liveUrl || '',
+      };
+      let activeSubmissionId = submissionId;
 
-      // Stage 2: Upload the ZIP file
+      if (activeSubmissionId) {
+        await api(`/submissions/${activeSubmissionId}`, {
+          method: 'PATCH',
+          body: JSON.stringify(submissionData),
+        });
+      } else {
+        const submission = await api('/submissions', {
+          method: 'POST',
+          body: JSON.stringify(submissionData),
+        });
+        activeSubmissionId = submission.id;
+        createdSubmissionId = activeSubmissionId;
+        setSubmissionId(activeSubmissionId);
+      }
+
+      // Upload the ZIP after creating or updating the submission details.
       setStage(STAGES.UPLOADING);
       const formData = new FormData();
       formData.append('projectFile', file);
 
-      await api(`/submissions/${submission.id}/upload`, {
+      await api(`/submissions/${activeSubmissionId}/upload`, {
         method: 'POST',
         body: formData,
         // Do NOT set Content-Type — the browser must set it with the multipart boundary
@@ -89,6 +135,9 @@ export default function SubmitPage() {
       setStage(STAGES.SUCCESS);
     } catch (err) {
       setStage(STAGES.IDLE);
+      if (createdSubmissionId) {
+        setSearchParams({ draft: createdSubmissionId }, { replace: true });
+      }
       const code = err?.code || 'default';
 
       // Handle field-level validation errors from the backend
@@ -127,18 +176,49 @@ export default function SubmitPage() {
     );
   }
 
+  if (isLoadingDraft || draftLoadError) {
+    return (
+      <div className="p-8 flex items-center justify-center min-h-[40vh]">
+        <Card className="w-full max-w-md text-center">
+          <CardContent className="pt-8 pb-8 px-8 space-y-4">
+            {isLoadingDraft ? (
+              <>
+                <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
+                <p className="text-muted-foreground">Loading your draft...</p>
+              </>
+            ) : (
+              <>
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{draftLoadError}</AlertDescription>
+                </Alert>
+                <Button className="w-full" onClick={() => navigate('/dashboard')}>
+                  Back to Dashboard
+                </Button>
+              </>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   const isSubmitting = stage === STAGES.CREATING || stage === STAGES.UPLOADING;
   const submitLabel =
-    stage === STAGES.CREATING ? 'Creating submission...' :
+    stage === STAGES.CREATING ? submissionId ? 'Saving submission...' : 'Creating submission...' :
     stage === STAGES.UPLOADING ? 'Uploading ZIP...' :
     'Submit Project';
 
   return (
     <div className="p-8 space-y-6 animate-in fade-in duration-300 max-w-2xl">
       <div>
-        <h1 className="text-3xl font-bold text-primary">Submit Your Project</h1>
+        <h1 className="text-3xl font-bold text-primary">
+          {submissionId ? 'Continue Your Submission' : 'Submit Your Project'}
+        </h1>
         <p className="text-muted-foreground mt-1">
-          Fill in your project details and upload your ZIP file
+          {submissionId
+            ? 'Review your project details and upload the ZIP file to complete your submission'
+            : 'Fill in your project details and upload your ZIP file'}
         </p>
       </div>
 
@@ -247,7 +327,7 @@ export default function SubmitPage() {
                 {isSubmitting ? (
                   <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{submitLabel}</>
                 ) : (
-                  <><Upload className="mr-2 h-4 w-4" />Submit Project</>
+                  <><Upload className="mr-2 h-4 w-4" />{submissionId ? 'Complete Submission' : 'Submit Project'}</>
                 )}
               </Button>
 

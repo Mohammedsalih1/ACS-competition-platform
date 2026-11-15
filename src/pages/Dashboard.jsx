@@ -77,7 +77,19 @@ export default function Dashboard() {
                     </p>
                     <p className="mt-1 text-xs font-medium text-primary">{submission.stageParticipation?.stage?.name || 'Stage assignment pending'}</p>
                   </div>
-                  <Badge variant="outline" className="capitalize">{submission.status.replace('_', ' ')}</Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="capitalize">{submission.status.replace('_', ' ')}</Badge>
+                    {submission.status === 'draft' && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => navigate(`/dashboard/submit?draft=${submission.id}`)}
+                      >
+                        <Upload className="h-4 w-4 mr-2" />
+                        Continue submission
+                      </Button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
