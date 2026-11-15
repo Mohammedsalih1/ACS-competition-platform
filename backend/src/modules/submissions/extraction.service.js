@@ -16,7 +16,7 @@ import { ERROR_CODES } from "../../constants/errorCodes.js";
 import ProjectStructure, {
   STRUCTURE_STATUS,
 } from "../../models/projectStructure.model.js";
-import { UPLOAD_STATUS } from "../../models/file.model.js";
+import File, { UPLOAD_STATUS } from "../../models/file.model.js";
 import {
   SUBMISSIONS_DIR,
   EXTRACTED_DIR_NAME,
@@ -24,6 +24,8 @@ import {
   MAX_FILE_COUNT,
   IGNORED_PATTERNS,
 } from "../../config/storage.config.js";
+import { isR2Configured, downloadFileFromR2 } from "../../services/r2.service.js";
+import { logger } from "../../utils/logger.js";
 
 // File-type classification map
 const EXTENSION_MAP = {
@@ -289,6 +291,7 @@ export async function extractAndProcess(file, submission) {
 
     return structure;
   } catch (error) {
+    logger.error(`[extraction] Extraction error:`, error);
     // Mark structure as failed but keep the record for visibility
     structure.status = STRUCTURE_STATUS.FAILED;
     structure.error =
@@ -381,6 +384,22 @@ function isIgnoredFileName(name) {
 }
 
 /**
+ * Safely move a file or folder across filesystems/platforms (handles Windows EPERM/EXDEV).
+ */
+async function safeMoveItem(src, dest) {
+  try {
+    await fs.rename(src, dest);
+  } catch (err) {
+    if (err.code === "EPERM" || err.code === "EXDEV" || err.code === "EACCES") {
+      await fs.cp(src, dest, { recursive: true });
+      await fs.rm(src, { recursive: true, force: true });
+    } else {
+      throw err;
+    }
+  }
+}
+
+/**
  * If the extraction root contains exactly one subdirectory (and nothing else),
  * move its children up.  GitHub ZIP downloads always wrap the repo in a
  * `<repo>-<branch>/` folder — this normalises that.
@@ -396,10 +415,10 @@ async function hoistSingleRootFolder(extractDir) {
   for (const child of innerChildren) {
     const src = path.join(singleDir, child);
     const dest = path.join(extractDir, child);
-    await fs.rename(src, dest);
+    await safeMoveItem(src, dest);
   }
 
-  await fs.rmdir(singleDir);
+  await fs.rm(singleDir, { recursive: true, force: true }).catch(() => {});
 }
 
 // Query helpers
@@ -485,7 +504,29 @@ export async function getFileContent(submissionId, filePath) {
   try {
     await fs.access(absolutePath);
   } catch {
-    throw ApiError.notFound("File not found on disk");
+    // If missing on disk (e.g. after Render restart/sleep), try to re-hydrate from Cloudflare R2
+    let restored = false;
+    if (isR2Configured()) {
+      try {
+        const fileDoc = await File.findById(structure.file).select("+storagePath +storageKey +storageType");
+        if (fileDoc?.storageKey) {
+          const zipPath = fileDoc.storagePath || path.join(SUBMISSIONS_DIR, String(submissionId), `${fileDoc._id}.zip`);
+          await fs.mkdir(path.dirname(zipPath), { recursive: true });
+          await downloadFileFromR2(fileDoc.storageKey, zipPath);
+          const zip = new AdmZip(zipPath);
+          zip.extractAllTo(structure.rootPath, true);
+          await fs.access(absolutePath);
+          restored = true;
+          logger.info(`[extraction] Re-hydrated files for submission ${submissionId} from R2`);
+        }
+      } catch (hydrateErr) {
+        logger.warn(`[extraction] Re-hydration from R2 failed: ${hydrateErr.message}`);
+      }
+    }
+
+    if (!restored) {
+      throw ApiError.notFound("File not found on disk");
+    }
   }
 
   const MAX_READABLE_SIZE = 1 * 1024 * 1024; // 1 MB

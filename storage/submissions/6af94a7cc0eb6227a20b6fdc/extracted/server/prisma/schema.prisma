@@ -1,0 +1,49 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Status {
+  ON
+  OFF
+}
+
+model Area {
+  id Int @unique @default(autoincrement())
+
+  state           String
+  city            String
+  area            String
+  comunityUpdates ComunityUpdate[]
+  schedules       Schedule[]
+
+  @@unique([state, city, area])
+  @@map("areas")
+}
+
+model ComunityUpdate {
+  id     Int     @unique @default(autoincrement())
+  name   String?
+  areaId Int     @map("area_id")
+  area   Area    @relation(fields: [areaId], references: [id], onDelete: Cascade)
+  status Status
+  data DateTime @default(now())
+
+  @@map("comunity_updates")
+}
+
+model Schedule {
+  id     Int    @unique @default(autoincrement())
+  areaId Int
+  area   Area   @relation(fields: [areaId], references: [id], onDelete: Cascade)
+  date   DateTime
+  from   String
+  to     String
+  status Status
+
+  @@map("schedules")
+}

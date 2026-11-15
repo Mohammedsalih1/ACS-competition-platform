@@ -7,8 +7,12 @@
  * message, so a misconfigured deployment never starts half-working.
  */
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { z } from 'zod';
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 dotenv.config();
 
 const booleanish = z
@@ -54,6 +58,12 @@ const schema = z.object({
   // --- File storage / uploads ---
   STORAGE_PATH: z.string().optional(),
   MAX_UPLOAD_SIZE_MB: z.coerce.number().int().positive().max(500).default(50),
+
+  // --- Cloudflare R2 Storage (Optional: falls back to local storage if not configured) ---
+  R2_ACCOUNT_ID: z.string().optional(),
+  R2_ACCESS_KEY_ID: z.string().optional(),
+  R2_SECRET_ACCESS_KEY: z.string().optional(),
+  R2_BUCKET_NAME: z.string().optional(),
 
   SEED_ADMIN_NAME: z.string().default('ACS Admin'),
   SEED_ADMIN_EMAIL: z.string().email().optional(),

@@ -7,8 +7,10 @@ import { ERROR_CODES } from '../../constants/errorCodes.js';
 import ProjectStructure, {
   STRUCTURE_STATUS,
 } from '../../models/projectStructure.model.js';
+import Submission from '../../models/submission.model.js';
+import File, { UPLOAD_STATUS } from '../../models/file.model.js';
 import { getSubmissionForViewer } from '../submissions/submission.service.js';
-import { buildNestedTree } from '../submissions/extraction.service.js';
+import { buildNestedTree, extractAndProcess } from '../submissions/extraction.service.js';
 import { resolveSecure, isBlockedFile } from '../../utils/securePath.js';
 import { logger } from '../../utils/logger.js';
 
@@ -67,7 +69,28 @@ function isViewable(entry) {
 }
 
 async function loadStructure(submissionId) {
-  const structure = await ProjectStructure.findOne({ submission: submissionId });
+  let structure = await ProjectStructure.findOne({ submission: submissionId });
+
+  if (!structure || structure.status !== STRUCTURE_STATUS.EXTRACTED) {
+    try {
+      const file = await File.findOne({
+        submission: submissionId,
+        status: { $in: [UPLOAD_STATUS.UPLOADED, UPLOAD_STATUS.EXTRACTED] },
+      }).select('+storagePath +storageKey +storageType');
+
+      if (file) {
+        const submission = await Submission.findById(submissionId);
+        if (submission) {
+          const recovered = await extractAndProcess(file, submission);
+          if (recovered && recovered.status === STRUCTURE_STATUS.EXTRACTED) {
+            return recovered;
+          }
+        }
+      }
+    } catch (recoverErr) {
+      logger.warn(`[files] On-demand extraction recovery failed: ${recoverErr.message}`);
+    }
+  }
 
   if (!structure) {
     throw ApiError.notFound('Project structure not found. Upload a ZIP first.', ERROR_CODES.PROJECT_NOT_EXTRACTED);

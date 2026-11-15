@@ -20,6 +20,12 @@ const fileSchema = new mongoose.Schema(
     fileSize: { type: Number, required: false },
     mimeType: { type: String, required: false },
     storagePath: { type: String, required: false, select: false },
+    storageKey: { type: String, required: false, select: false },
+    storageType: {
+      type: String,
+      enum: ['local', 'r2'],
+      default: 'local',
+    },
     extractedPath: { type: String, required: false, select: false },
     status: {
       type: String,

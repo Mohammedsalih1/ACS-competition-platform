@@ -1,0 +1,77 @@
+.app-shell {
+  width: 100%;
+  min-height: 100vh;
+  background: #f5f7fb;
+}
+
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 40px;
+  background: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.company-name {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.location {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #4b5563;
+}
+
+.selector-panel {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+  padding: 40px;
+}
+
+.selector-column {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.selector-column label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.selector-column select {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #111827;
+  font-size: 1rem;
+  box-sizing: border-box;
+}
+
+.selector-column select:disabled {
+  background: #f3f4f6;
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.table-container {
+  margin: 0 auto;
+  padding: 10px;
+  border: 1px solid black;
+  width: 50rem;
+
+}
+
+.table-head {
+ display: flex;
+ justify-content: space-between;
+ align-items: center;
+}

@@ -1,5 +1,7 @@
 import fs from "fs/promises";
 import * as submissionService from "./submission.service.js";
+import * as r2Service from "../../services/r2.service.js";
+import { logger } from "../../utils/logger.js";
 import {
   buildPaginationMeta,
   sendCreated,
@@ -111,6 +113,24 @@ export const downloadSubmissionFile = async (req, res) => {
     `attachment; filename="${encodeURIComponent(safeFileName)}"`,
   );
 
+  // Stream from Cloudflare R2 if available
+  if (file.storageKey && (file.storageType === "r2" || r2Service.isR2Configured())) {
+    try {
+      const { stream, contentLength } = await r2Service.downloadStreamFromR2(file.storageKey);
+      if (contentLength) res.setHeader("Content-Length", contentLength);
+      return stream.pipe(res);
+    } catch (err) {
+      logger.warn(`[download] Failed to stream from R2 (${err.message}), falling back to disk`);
+    }
+  }
+
+  // Guard against missing file on disk (e.g. after container restart/redeploy on ephemeral hosts)
+  try {
+    await fs.access(file.storagePath);
+  } catch {
+    throw ApiError.notFound("File no longer exists on server storage. The submission file may need to be re-uploaded.");
+  }
+
   return res.sendFile(file.storagePath);
 };
 
@@ -157,4 +177,4 @@ export const deleteSubmissionRecord = async (req, res) => {
   const { submissionId } = req.params;
   await submissionService.deleteSubmission(submissionId);
   return sendSuccess(res, { message: 'Submission deleted' });
-};
+};

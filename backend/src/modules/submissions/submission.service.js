@@ -22,6 +22,11 @@ import {
   removeExtractedDir,
 } from "../../utils/fileCleanup.js";
 import { logger } from "../../utils/logger.js";
+import {
+  isR2Configured,
+  uploadFileToR2,
+  deleteFileFromR2,
+} from "../../services/r2.service.js";
 import Evaluation from "../../models/evaluation.model.js";
 import CompetitionSetting from "../../models/competitionSetting.model.js";
 import { ROLES } from "../../constants/roles.js";
@@ -211,9 +216,15 @@ async function replacePreviousFiles(submission) {
   const previousFiles = await File.find({
     submission: submission._id,
     status: { $in: [UPLOAD_STATUS.UPLOADED, UPLOAD_STATUS.EXTRACTED] },
-  }).select("+storagePath +extractedPath");
+  }).select("+storagePath +storageKey +storageType +extractedPath");
 
   for (const oldFile of previousFiles) {
+    if (oldFile.storageKey) {
+      await deleteFileFromR2(oldFile.storageKey).catch((err) =>
+        logger.warn(`[re-upload] Failed to remove old R2 file: ${err.message}`),
+      );
+    }
+
     if (oldFile.storagePath) {
       await removeFileFromDisk(oldFile.storagePath).catch((err) =>
         logger.warn(`[re-upload] Failed to remove old ZIP: ${err.message}`),
@@ -333,6 +344,18 @@ export const uploadZipForSubmission = async ({
     file.fileSize = stats.size;
     file.mimeType = mimeType;
     file.storagePath = finalFilePath;
+
+    if (isR2Configured()) {
+      const r2Key = `submissions/${submission._id}/${file._id}.zip`;
+      await uploadFileToR2({
+        key: r2Key,
+        filePath: finalFilePath,
+        mimeType,
+      });
+      file.storageKey = r2Key;
+      file.storageType = "r2";
+    }
+
     file.status = UPLOAD_STATUS.UPLOADED;
     await file.save();
 
@@ -375,7 +398,7 @@ export const getLatestUploadedFile = async (submissionId) => {
     status: { $in: [UPLOAD_STATUS.UPLOADED, UPLOAD_STATUS.EXTRACTED] },
   })
     .sort({ createdAt: -1 })
-    .select("+storagePath +extractedPath");
+    .select("+storagePath +storageKey +storageType +extractedPath");
 
   if (!file) {
     throw ApiError.notFound("No file uploaded for this submission yet");
@@ -392,6 +415,11 @@ export const deleteSubmissionFiles = async (submissionId, contestantId) => {
     throw ApiError.conflict('Files cannot be changed after review has started');
   }
   if (submission.completedEvaluationCount > 0) throw ApiError.conflict('Files cannot be changed after judging has started');
+
+  const files = await File.find({ submission: submission._id }).select("+storageKey");
+  for (const f of files) {
+    if (f.storageKey) await deleteFileFromR2(f.storageKey).catch(() => {});
+  }
 
   // Mark all files as replaced
   await replacePreviousFiles(submission);
@@ -415,6 +443,11 @@ export const deleteSubmissionFiles = async (submissionId, contestantId) => {
 
 /** Cascade-delete a submission and all associated data (admin). */
 export const deleteSubmission = async (submissionId) => {
+  const files = await File.find({ submission: submissionId }).select("+storageKey");
+  for (const f of files) {
+    if (f.storageKey) await deleteFileFromR2(f.storageKey).catch(() => {});
+  }
+
   // Clean up files on disk
   await cleanupSubmissionFiles(submissionId);
 
