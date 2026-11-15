@@ -86,7 +86,7 @@ export const assignProjects = async (stageId, submissionIds, actor, reason = '')
   if (!['draft', 'open'].includes(stage.status)) throw ApiError.conflict('Projects can only be assigned to draft or open stages');
   const submissions = await Submission.find({ _id: { $in: submissionIds }, status: { $ne: 'draft' } }).select('_id').lean();
   if (submissions.length !== new Set(submissionIds.map(String)).size) throw ApiError.badRequest('One or more submitted projects could not be found');
-  const existing = await ProjectStageParticipation.find({ submission: { $in: submissions.map((item) => item._id) }, active: true }).lean();
+  const existing = await ProjectStageParticipation.find({ submission: { $in: submissions.map((item) => item._id) }, active: true });
   const bySubmission = new Map(existing.map((item) => [String(item.submission), item]));
   const moving = existing.filter((item) => String(item.stage) !== String(stageId));
   if (moving.length && await Evaluation.exists({ participation: { $in: moving.map((item) => item._id) }, status: 'submitted' })) throw ApiError.conflict('A selected project has completed evaluations and cannot be moved. Preserve its current stage results first.');

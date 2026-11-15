@@ -10,12 +10,13 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { CheckCircle2, AlertCircle, Loader2, Upload } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Loader2, Upload, Link } from 'lucide-react';
 import FileDropZone from '../components/submission/FileDropZone';
 
 const schema = z.object({
   title: z.string().min(1, 'Project title is required').max(200, 'Title must be under 200 characters'),
   description: z.string().max(1000, 'Description must be under 1000 characters').optional(),
+  liveUrl: z.string().trim().url('Must be a valid URL (e.g. https://...)').max(2048).optional().or(z.literal('')),
 });
 
 // Map backend error codes to user-friendly messages
@@ -42,7 +43,7 @@ export default function SubmitPage() {
 
   const form = useForm({
     resolver: zodResolver(schema),
-    defaultValues: { title: '', description: '' },
+    defaultValues: { title: '', description: '', liveUrl: '' },
   });
 
   const titleValue = useWatch({ control: form.control, name: 'title' }) || '';
@@ -70,6 +71,7 @@ export default function SubmitPage() {
         body: JSON.stringify({
           title: data.title,
           description: data.description || '',
+          liveUrl: data.liveUrl || '',
         }),
       });
 
@@ -92,7 +94,7 @@ export default function SubmitPage() {
       // Handle field-level validation errors from the backend
       if (code === 'VALIDATION_ERROR' && Array.isArray(err?.details)) {
         err.details.forEach(({ field, message }) => {
-          if (field === 'title' || field === 'description') {
+          if (field === 'title' || field === 'description' || field === 'liveUrl') {
             form.setError(field, { message });
           }
         });
@@ -191,6 +193,33 @@ export default function SubmitPage() {
                         rows={3}
                         {...field}
                       />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Live Demo URL */}
+              <FormField
+                control={form.control}
+                name="liveUrl"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      Live Demo URL{' '}
+                      <span className="text-muted-foreground text-xs">(optional)</span>
+                    </FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <Link className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                        <Input
+                          type="url"
+                          placeholder="https://your-project.vercel.app"
+                          className="pl-9"
+                          maxLength={2048}
+                          {...field}
+                        />
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
