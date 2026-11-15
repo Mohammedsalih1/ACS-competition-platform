@@ -77,6 +77,11 @@ const incompleteFinal = await api(`/judging/evaluations/${submission.id}/submit`
 check('final evaluation requires all eight official criteria', incompleteFinal.status === 400);
 const final1 = await api(`/judging/evaluations/${submission.id}/submit`, { method: 'POST', token: j1, body: { scores: scores(8), bonusScore: 2, generalNote: 'Final one' } });
 check('draft can be finalized', final1.status === 201 && final1.body.data.evaluation.totalScore === 66);
+const assignmentStage = await CompetitionStage.create([{ ...stageData, name: 'Assignment guard stage', order: 3, status: 'draft' }]);
+const evaluatedAssignment = await api(`/stages/${assignmentStage[0].id}/projects`, { method: 'PUT', token: adminToken, body: { submissionIds: [submission.id] } });
+check('project with a submitted evaluation cannot be assigned to another stage', evaluatedAssignment.status === 409);
+const adminSubmissions = await api('/submissions?limit=100', { token: adminToken });
+check('admin submission list exposes completed evaluation count', adminSubmissions.status === 200 && adminSubmissions.body.data.submissions.find((item) => item.id === submission.id)?.evaluationCount === 1);
 const locked = await api(`/judging/evaluations/${submission.id}/draft`, { method: 'PUT', token: j1, body: { scores: [], bonusScore: 0 } });
 check('final evaluation is locked', locked.status === 409);
 const final2 = await api(`/judging/evaluations/${submission.id}/submit`, { method: 'POST', token: j2, body: { scores: scores(10), bonusScore: 5, generalNote: 'Final two' } });
