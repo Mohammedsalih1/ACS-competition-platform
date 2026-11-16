@@ -12,7 +12,8 @@ import File, { UPLOAD_STATUS } from '../../models/file.model.js';
 import { getSubmissionForViewer } from '../submissions/submission.service.js';
 import { buildNestedTree, extractAndProcess } from '../submissions/extraction.service.js';
 import { resolveSecure, isBlockedFile } from '../../utils/securePath.js';
-import { isR2Configured, downloadFileFromR2 } from '../../services/r2.service.js';
+import { logger } from '../../utils/logger.js';
+
 import path from 'path';
 import os from 'os';
 
