@@ -169,7 +169,27 @@ export async function extractAndProcess(file, submission) {
   try {
     // Resolve storagePath — the field is `select: false` so it may already be
     // loaded (from uploadZipForSubmission) or we need to re-query.
-    const zipPath = file.storagePath;
+    let zipPath = file.storagePath;
+
+    // If local file is missing but R2 has it, download to local path first
+    if (zipPath) {
+      try {
+        await fs.access(zipPath);
+      } catch {
+        // Local file gone (e.g. Render ephemeral disk) — try R2
+        if (isR2Configured() && file.storageKey) {
+          logger.info(`[extraction] Local ZIP missing, downloading from R2: ${file.storageKey}`);
+          await fs.mkdir(path.dirname(zipPath), { recursive: true });
+          await downloadFileFromR2(file.storageKey, zipPath);
+        }
+      }
+    } else if (isR2Configured() && file.storageKey) {
+      // No storagePath at all but R2 key exists — download to submission dir
+      zipPath = path.join(submissionDir, `${file._id}.zip`);
+      await fs.mkdir(submissionDir, { recursive: true });
+      await downloadFileFromR2(file.storageKey, zipPath);
+    }
+
     if (!zipPath) {
       throw ApiError.internal("File storage path is missing");
     }

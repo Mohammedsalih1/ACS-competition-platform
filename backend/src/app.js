@@ -27,7 +27,7 @@ export const createApp = () => {
 
   // Behind a reverse proxy (nginx, Render, Railway), trust it so req.ip is the
   // real client address - the rate limiter keys on it.
-  if (env.isProduction) app.set('trust proxy', 1);
+  app.set('trust proxy', 1);
   app.disable('x-powered-by');
 
   app.use(requestId);
