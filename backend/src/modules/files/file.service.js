@@ -12,7 +12,9 @@ import File, { UPLOAD_STATUS } from '../../models/file.model.js';
 import { getSubmissionForViewer } from '../submissions/submission.service.js';
 import { buildNestedTree, extractAndProcess } from '../submissions/extraction.service.js';
 import { resolveSecure, isBlockedFile } from '../../utils/securePath.js';
-import { logger } from '../../utils/logger.js';
+import { isR2Configured, downloadFileFromR2 } from '../../services/r2.service.js';
+import path from 'path';
+import os from 'os';
 
 // ── Language map ────────────────────────────────────────────────────
 
@@ -281,12 +283,47 @@ export async function getFileContent(submissionId, filePath, user) {
     };
   }
 
-  const resolved = resolveSecure(structure.rootPath, filePath);
-
+  // Resolve storage path – if file is stored in R2, download it locally first
+  let resolved = resolveSecure(structure.rootPath, filePath);
   try {
     await fs.access(resolved);
   } catch {
-    throw ApiError.notFound('File not found on disk', ERROR_CODES.FILE_NOT_ON_DISK);
+    // Try to re-extract if the file is missing on disk
+    try {
+      const zipFile = await File.findOne({ submission: submissionId }).select('+storagePath +storageKey');
+      if (!zipFile) {
+        throw new Error('ZIP file metadata not found');
+      }
+      // Ensure zip is available locally
+      let zipPath = zipFile.storagePath;
+      if (!zipPath && isR2Configured() && zipFile.storageKey) {
+        const os = require('os');
+        const tmpDir = os.tmpdir();
+        const tmpPath = path.join(tmpDir, `${submissionId}-${zipFile._id}.zip`);
+        await downloadFileFromR2(zipFile.storageKey, tmpPath);
+        zipPath = tmpPath;
+      }
+      if (zipPath) {
+        await extractAndProcess(zipFile, await Submission.findById(submissionId));
+        // Refresh structure after extraction
+        const refreshed = await ProjectStructure.findOne({ submission: submissionId });
+        if (refreshed) {
+          resolved = resolveSecure(refreshed.rootPath, filePath);
+        }
+      }
+    } catch (reErr) {
+      logger.warn(`[files] Re-extraction failed for ${filePath}: ${reErr.message}`);
+    }
+    // After attempted re-extraction, check again
+    try {
+      await fs.access(resolved);
+    } catch {
+      // If still not found, attempt R2 download of the specific file (unlikely needed)
+      if (isR2Configured()) {
+        // No direct R2 support for individual files; fallback to error
+      }
+      throw ApiError.notFound('File not found on disk', ERROR_CODES.FILE_NOT_ON_DISK);
+    }
   }
 
   const content = await fs.readFile(resolved, 'utf-8');
