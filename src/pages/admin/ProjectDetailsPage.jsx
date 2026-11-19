@@ -4,7 +4,7 @@ import { api, downloadFile } from '../../api/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, CheckCircle2, Download } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Download, ExternalLink } from 'lucide-react';
 
 export default function ProjectDetailsPage() {
   const { projectId } = useParams();
@@ -39,6 +39,9 @@ export default function ProjectDetailsPage() {
   const uploadedFile = project.files?.reduce((latest, file) => (
     !latest || new Date(file.createdAt) > new Date(latest.createdAt) ? file : latest
   ), null);
+  const liveHref = project.liveUrl?.startsWith('http://') || project.liveUrl?.startsWith('https://')
+    ? project.liveUrl
+    : `https://${project.liveUrl}`;
 
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">
@@ -55,10 +58,28 @@ export default function ProjectDetailsPage() {
             {project.contestant?.name} · {project.contestant?.email}
           </p>
         </div>
-        {project.files?.length > 0 && (
-          <Button variant="outline" onClick={() => downloadFile(`/submissions/${project.id}/download`)}>
-            <Download />Download ZIP
-          </Button>
+        {(project.liveUrl || project.files?.length > 0) && (
+          <div className="flex flex-wrap items-center gap-2">
+            {project.liveUrl && (
+              <Button
+                className="bg-acs-orange hover:bg-acs-orange-dark text-white font-medium shadow-sm"
+                render={
+                  <a
+                    href={liveHref}
+                    target="_blank"
+                    rel="noreferrer"
+                  />
+                }
+              >
+                <ExternalLink />Live URL
+              </Button>
+            )}
+            {project.files?.length > 0 && (
+              <Button variant="outline" onClick={() => downloadFile(`/submissions/${project.id}/download`)}>
+                <Download />Download ZIP
+              </Button>
+            )}
+          </div>
         )}
       </header>
       {message && <p className="rounded-xl border bg-white p-4 text-sm">{message}</p>}
@@ -71,6 +92,22 @@ export default function ProjectDetailsPage() {
             <Info label="Submitted" value={formatDate(project.submittedAt)} />
             <Info label="Attachment" value={uploadedFile?.originalFileName || 'No attachment'} />
             <Info label="ZIP uploaded" value={formatDateTime(uploadedFile?.createdAt)} />
+            {project.liveUrl && (
+              <Info
+                label="Live URL"
+                value={
+                  <a
+                    href={liveHref}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 text-primary hover:underline break-all"
+                  >
+                    {project.liveUrl}
+                    <ExternalLink className="h-3 w-3 inline shrink-0" />
+                  </a>
+                }
+              />
+            )}
             <div>
               <p className="text-xs font-semibold uppercase text-muted-foreground">Description</p>
               <p className="mt-2 whitespace-pre-wrap text-sm leading-6">
